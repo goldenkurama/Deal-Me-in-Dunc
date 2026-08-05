@@ -60,7 +60,7 @@ button { border: 0; }
   --page-pop: #f7c928;
   --page-cool: #63ced8;
   --page-paper: #e8e7e2;
-  --page-block: #e94235;
+  --page-block: #f7c928;
   position: relative;
   display: grid;
   place-items: center;
@@ -77,7 +77,7 @@ button { border: 0; }
   --page-pop: #ff8524;
   --page-cool: #62d2da;
   --page-paper: #e3e9e8;
-  --page-block: #d92f79;
+  --page-block: #ff8524;
 }
 
 .auth-cover {
