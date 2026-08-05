@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: dealmeindunc-production
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   ci:
@@ -27,17 +27,10 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "22"
+          cache: npm
 
       - name: Install dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [[ -f package-lock.json ]]; then
-            npm ci
-          else
-            npm install
-          fi
+        run: npm ci
 
       - name: Type-check
         run: npm run typecheck
@@ -62,12 +55,14 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         shell: bash
         run: |
           set -euo pipefail
 
           : "${DEPLOY_HOST:?DEPLOY_HOST secret is missing}"
           : "${DEPLOY_KEY:?DEPLOY_KEY secret is missing}"
+          : "${DEPLOY_KNOWN_HOSTS:?DEPLOY_KNOWN_HOSTS secret is missing}"
 
           install -m 700 -d ~/.ssh
 
@@ -77,17 +72,15 @@ jobs:
 
           chmod 600 ~/.ssh/deploy_key
 
-          ssh-keyscan -H "$DEPLOY_HOST" \
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" \
+            | tr -d '\r' \
             > ~/.ssh/known_hosts
 
           chmod 600 ~/.ssh/known_hosts
 
-          test -s ~/.ssh/known_hosts || {
-            echo "Could not retrieve the Droplet SSH host key."
-            exit 1
-          }
+          test -s ~/.ssh/known_hosts
 
-      - name: Test SSH connection
+      - name: Deploy application
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -97,21 +90,6 @@ jobs:
 
           : "${DEPLOY_HOST:?DEPLOY_HOST secret is missing}"
           : "${DEPLOY_USER:?DEPLOY_USER secret is missing}"
-
-          ssh \
-            -i ~/.ssh/deploy_key \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "echo 'SSH connection successful.'"
-
-      - name: Deploy application
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-        shell: bash
-        run: |
-          set -euo pipefail
 
           ssh \
             -i ~/.ssh/deploy_key \
@@ -136,11 +114,7 @@ jobs:
               git fetch origin main
               git reset --hard origin/main
 
-              if [[ -f package-lock.json ]]; then
-                npm ci
-              else
-                npm install
-              fi
+              npm ci
 
               npm run build
 
