@@ -56,10 +56,11 @@ button { border: 0; }
 .loading-card--error { max-width: 480px; text-align: center; color: #6f261f; }
 
 .auth-screen {
-  --page-accent: #ee3c22;
-  --page-pop: #f0c527;
-  --page-cool: #8bcbd3;
-  --page-paper: #d8d3c9;
+  --page-accent: #f0442b;
+  --page-pop: #f7c928;
+  --page-cool: #63ced8;
+  --page-paper: #e8e7e2;
+  --page-block: #e94235;
   position: relative;
   display: grid;
   place-items: center;
@@ -72,10 +73,11 @@ button { border: 0; }
 }
 
 .auth-screen--register {
-  --page-accent: #d92f79;
-  --page-pop: #ef7c24;
-  --page-cool: #74cdd2;
-  --page-paper: #c9d9d9;
+  --page-accent: #df2e7c;
+  --page-pop: #ff8524;
+  --page-cool: #62d2da;
+  --page-paper: #e3e9e8;
+  --page-block: #d92f79;
 }
 
 .auth-cover {
@@ -85,7 +87,7 @@ button { border: 0; }
   aspect-ratio: 16 / 9;
   min-height: 520px;
   overflow: hidden;
-  border: 10px solid #e9e1d2;
+  border: 10px solid #f2eee7;
   color: #171513;
   background:
     linear-gradient(90deg, transparent 49.7%, rgb(23 21 19 / 16%) 50%, transparent 50.3%),
@@ -101,7 +103,7 @@ button { border: 0; }
   inset: -30% 51% 40% -17%;
   content: "";
   border: 5px solid #171513;
-  background: var(--page-pop);
+  background: var(--page-block);
   transform: rotate(-10deg);
 }
 
@@ -114,7 +116,7 @@ button { border: 0; }
   height: 66px;
   content: "";
   border-block: 5px solid #171513;
-  background: repeating-conic-gradient(#171513 0 25%, #f4ead7 0 50%) 0 / 28px 28px;
+  background: repeating-conic-gradient(#171513 0 25%, #faf7f0 0 50%) 0 / 28px 28px;
   transform: rotate(-2deg);
 }
 
@@ -124,7 +126,7 @@ button { border: 0; }
   top: 25px;
   left: 27px;
   width: 390px;
-  color: #f7edde;
+  color: #fffaf2;
   font-size: clamp(2.7rem, 6.8vw, 4.65rem);
   font-weight: 700;
   line-height: 0.72;
@@ -151,7 +153,7 @@ button { border: 0; }
   top: 126px;
   left: 28px;
   margin: 0;
-  color: #f7edde;
+  color: #fffaf2;
   font-size: 1.12rem;
   font-weight: 700;
   line-height: 0.85;
@@ -170,7 +172,7 @@ button { border: 0; }
   font-weight: 700;
   letter-spacing: -0.06em;
   -webkit-text-stroke: 1px #171513;
-  text-shadow: 2px 2px 0 #f7edde;
+  text-shadow: 2px 2px 0 #fffaf2;
   transform: rotate(-11deg);
 }
 
@@ -265,7 +267,7 @@ button { border: 0; }
   width: 106px;
   aspect-ratio: 1;
   padding: 12px;
-  color: #f7edde;
+  color: #fffaf2;
   background: #171513;
   clip-path: polygon(50% 0, 60% 23%, 79% 7%, 79% 31%, 100% 27%, 84% 49%, 100% 63%, 76% 67%, 83% 92%, 59% 78%, 48% 100%, 39% 76%, 15% 94%, 22% 68%, 0 65%, 17% 48%, 0 30%, 24% 30%, 21% 7%, 41% 24%);
   font-size: 0.79rem;
@@ -286,7 +288,7 @@ button { border: 0; }
   color: #171513;
   background:
     radial-gradient(circle, rgb(23 21 19 / 8%) 0 1px, transparent 1.5px) 0 0 / 5px 5px,
-    #f4ead7;
+    #f8f6ef;
   box-shadow: 9px 9px 0 #171513, 15px 15px 0 var(--page-accent);
   transform: rotate(1.25deg);
 }
@@ -317,7 +319,7 @@ button { border: 0; }
   display: inline-block;
   margin-bottom: 13px;
   padding: 4px 7px;
-  color: #f7edde;
+  color: #fffaf2;
   background: #171513;
   font-size: 0.6rem;
   font-weight: 700;
@@ -331,7 +333,7 @@ button { border: 0; }
   max-width: 100%;
   margin: 0;
   padding: 5px 9px 4px;
-  color: #f7edde;
+  color: #fffaf2;
   background: var(--page-accent);
   font-size: 1.25rem;
   letter-spacing: 0.07em;
@@ -364,7 +366,7 @@ button { border: 0; }
   padding: 9px 10px;
   outline: 0;
   color: #171513;
-  background: #fffdf0;
+  background: #fffefa;
   box-shadow: 4px 4px 0 var(--page-cool);
 }
 
@@ -410,7 +412,7 @@ button { border: 0; }
   margin: 15px -28px -22px;
   border-top: 4px solid #171513;
   padding: 7px 24px 8px;
-  color: #f7edde;
+  color: #fffaf2;
   background: #171513;
   font-size: 0.56rem;
   letter-spacing: 0.1em;
@@ -431,7 +433,7 @@ button { border: 0; }
   border: 2px solid #171513;
   padding: 3px 6px;
   color: #171513;
-  background: #f4ead7;
+  background: #faf8f2;
   font-size: 0.52rem;
   font-weight: 700;
   box-shadow: 2px 2px 0 #171513;
@@ -444,7 +446,7 @@ button { border: 0; }
   bottom: 17px;
   width: 430px;
   margin: 0;
-  color: #f4ead7;
+  color: #fffaf2;
   font-size: 0.52rem;
   letter-spacing: 0.07em;
 }
