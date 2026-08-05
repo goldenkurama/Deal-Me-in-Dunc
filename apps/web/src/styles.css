@@ -64,7 +64,7 @@ button { border: 0; }
   display: grid;
   place-items: center;
   min-height: 100%;
-  padding: 18px;
+  padding: 8px;
   overflow: auto;
   background:
     radial-gradient(circle, rgb(255 255 255 / 9%) 0 1px, transparent 1.5px) 0 0 / 7px 7px,
@@ -81,7 +81,7 @@ button { border: 0; }
 .auth-cover {
   position: relative;
   isolation: isolate;
-  width: min(960px, calc(100vw - 36px), calc((100vh - 36px) * 16 / 9));
+  width: min(1120px, calc(100vw - 44px), calc((100vh - 44px) * 16 / 9));
   aspect-ratio: 16 / 9;
   min-height: 520px;
   overflow: hidden;
@@ -92,6 +92,7 @@ button { border: 0; }
     radial-gradient(circle at 18% 30%, rgb(23 21 19 / 12%) 0 1px, transparent 1.6px) 0 0 / 6px 6px,
     linear-gradient(105deg, var(--page-paper) 0 56%, var(--page-cool) 56% 100%);
   box-shadow: 0 18px 60px rgb(0 0 0 / 60%);
+  transform: rotate(-0.7deg);
 }
 
 .auth-cover::before {
@@ -479,6 +480,7 @@ button { border: 0; }
     background:
       radial-gradient(circle at 18% 30%, rgb(23 21 19 / 12%) 0 1px, transparent 1.6px) 0 0 / 6px 6px,
       var(--page-cool);
+    transform: none;
   }
   .auth-cover::before { inset: -22% 25% 72% -25%; }
   .auth-cover::after { right: -90px; bottom: 42px; }
