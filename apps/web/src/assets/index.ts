@@ -9,3 +9,4 @@ export * from "./uiAssets";
  * beside these files. Scenes should import asset definitions from this folder
  * instead of embedding public paths.
  */
+export * from "./authAssets";

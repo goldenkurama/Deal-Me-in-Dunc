@@ -1,4 +1,5 @@
 import type { AuthCredentials } from "@fox-blackjack/shared-types";
+import { AUTH_ASSETS } from "../assets/authAssets";
 
 export type AuthMode = "login" | "register";
 
@@ -15,57 +16,90 @@ export function renderAuthView(
   const isRegister = mode === "register";
   root.innerHTML = `
     <main class="auth-screen auth-screen--${mode}">
-      <section class="auth-panel" aria-labelledby="auth-title">
-        <div class="auth-panel__eyebrow">PLAYER ACCOUNT</div>
-        <h1 class="logo-lockup" id="auth-title">
+      <div class="auth-cover">
+        <div class="auth-cover__masthead" aria-hidden="true">
           <span>DEAL ME IN,</span>
           <strong>DUNC</strong>
-        </h1>
-        <div class="auth-panel__divider" aria-hidden="true"></div>
-
-        <h2 class="auth-panel__title">
-          ${isRegister ? "CREATE ACCOUNT" : "WELCOME BACK"}
-        </h2>
-        <p class="auth-panel__lede">
-          ${isRegister ? "Choose a username and password to get started." : "Sign in to continue your game."}
+        </div>
+        <p class="auth-cover__kicker" aria-hidden="true">
+          BUILT FOR<br />THE MISFITS.
         </p>
+        <p class="auth-cover__scribble" aria-hidden="true">
+          ${isRegister ? "FIRST RUN!" : "OLD SKOOL"}
+        </p>
+        <div class="auth-cover__arrow" aria-hidden="true">&#10140;</div>
+        <div
+          class="auth-cover__hero-placeholder"
+          style="--hero-width: ${AUTH_ASSETS.hero.displaySize.width}px; --hero-height: ${AUTH_ASSETS.hero.displaySize.height}px"
+          aria-label="Hero illustration coming soon"
+        >
+          <span>HERO ART</span>
+          <strong>COMING<br />SOON</strong>
+          <small>${AUTH_ASSETS.hero.displaySize.width} × ${AUTH_ASSETS.hero.displaySize.height} PX</small>
+        </div>
+        <div class="auth-cover__burst" aria-hidden="true">
+          ${isRegister ? "NEW<br />PLAYER" : "WELCOME<br />BACK"}
+        </div>
 
-        <form class="auth-form" novalidate>
-          <label class="game-field">
-            <span>USERNAME</span>
-            <input
-              name="username"
-              type="text"
-              autocomplete="username"
-              minlength="3"
-              maxlength="20"
-              pattern="[A-Za-z0-9_]+"
-              required
-            />
-          </label>
+        <section class="auth-panel" aria-labelledby="auth-title">
+          <div class="auth-panel__tape" aria-hidden="true"></div>
+          <div class="auth-panel__eyebrow">PLAYER ACCESS // ISSUE 001</div>
 
-          <label class="game-field">
-            <span>PASSWORD</span>
-            <input
-              name="password"
-              type="password"
-              autocomplete="${isRegister ? "new-password" : "current-password"}"
-              minlength="8"
-              required
-            />
-          </label>
+          <h1 class="auth-panel__title" id="auth-title">
+            ${isRegister ? "CREATE ACCOUNT" : "SIGN IN"}
+          </h1>
+          <p class="auth-panel__lede">
+            ${isRegister ? "Grab a username. Make some noise." : "Back for another hand? Get in here."}
+          </p>
 
-          <p class="auth-form__error" role="alert" aria-live="polite"></p>
+          <form class="auth-form" novalidate>
+            <label class="game-field">
+              <span>USERNAME</span>
+              <input
+                name="username"
+                type="text"
+                autocomplete="username"
+                minlength="3"
+                maxlength="20"
+                pattern="[A-Za-z0-9_]+"
+                required
+              />
+            </label>
 
-          <button class="game-button game-button--primary" type="submit">
-            ${isRegister ? "REGISTER" : "SIGN IN"}
+            <label class="game-field">
+              <span>PASSWORD</span>
+              <input
+                name="password"
+                type="password"
+                autocomplete="${isRegister ? "new-password" : "current-password"}"
+                minlength="8"
+                required
+              />
+            </label>
+
+            <p class="auth-form__error" role="alert" aria-live="polite"></p>
+
+            <button class="game-button game-button--primary" type="submit">
+              ${isRegister ? "REGISTER" : "SIGN IN"}
+            </button>
+          </form>
+
+          <button class="auth-panel__switch" type="button">
+            ${isRegister ? "Already registered? Sign in." : "Need an account? Register."}
           </button>
-        </form>
 
-        <button class="auth-panel__switch" type="button">
-          ${isRegister ? "Already registered? Sign in." : "Need an account? Register."}
-        </button>
-      </section>
+          <div class="auth-panel__footer" aria-hidden="true">
+            ${isRegister ? "START FRESH // PLAY LOUD" : "RETURNING PLAYER // NO OVERCHARGE"}
+          </div>
+        </section>
+
+        <div class="auth-cover__info" aria-hidden="true">
+          <span>FREE PLAY</span><span>NO ADS</span><span>BROWSER GAME</span><span>EST. 2026</span>
+        </div>
+        <p class="auth-cover__fineprint" aria-hidden="true">
+          NO DRESS CODE. NO VIP LINE. JUST YOU, THE HOUSE, AND WHATEVER HAPPENS NEXT.
+        </p>
+      </div>
     </main>
   `;
 
