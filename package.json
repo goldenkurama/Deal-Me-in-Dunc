@@ -1,0 +1,22 @@
+{
+  "name": "fox-blackjack",
+  "private": true,
+  "version": "0.2.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@fox-blackjack/web",
+    "dev:web": "npm run dev --workspace=@fox-blackjack/web",
+    "dev:api": "npm run dev --workspace=@fox-blackjack/api",
+    "build": "npm run typecheck --workspace=@fox-blackjack/game-core && npm run typecheck --workspace=@fox-blackjack/shared-types && npm run build --workspace=@fox-blackjack/web && npm run build --workspace=@fox-blackjack/api",
+    "test": "npm run test --workspace=@fox-blackjack/game-core && npm run test --workspace=@fox-blackjack/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:migrate": "npm run db:migrate --workspace=@fox-blackjack/api",
+    "db:reset-password": "npm run reset-password --workspace=@fox-blackjack/api --"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
