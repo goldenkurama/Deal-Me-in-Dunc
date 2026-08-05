@@ -1,10 +1,10 @@
 import Phaser from "phaser";
 import {
-  blackjackProfit,
   calculateHandValue,
   createDeck,
+  dealOpeningHands,
   drawCard,
-  isBlackjack,
+  isNaturalBlackjack,
   shuffleDeck,
   type Card
 } from "@fox-blackjack/game-core";
@@ -17,6 +17,7 @@ export class TableScene extends Phaser.Scene {
   private deck: Card[] = [];
   private playerHand: Card[] = [];
   private dealerHand: Card[] = [];
+
   private statusText!: Phaser.GameObjects.Text;
   private handText!: Phaser.GameObjects.Text;
   private balancesText!: Phaser.GameObjects.Text;
@@ -75,16 +76,22 @@ export class TableScene extends Phaser.Scene {
 
   private drawRoom(): void {
     const graphics = this.add.graphics();
+
     graphics.fillStyle(0x261a30);
     graphics.fillRect(0, 0, 960, 300);
+
     graphics.fillStyle(0x3c1e32);
     graphics.fillRect(0, 0, 960, 78);
+
     graphics.fillStyle(0xd3a03c);
     graphics.fillRect(0, 76, 960, 5);
+
     graphics.fillStyle(0x0e5a47);
     graphics.fillRoundedRect(90, 265, 780, 275, 140);
+
     graphics.lineStyle(12, 0x5d321f);
     graphics.strokeRoundedRect(90, 265, 780, 275, 140);
+
     graphics.fillStyle(0x071c16, 0.35);
     graphics.fillEllipse(480, 395, 500, 170);
 
@@ -125,53 +132,99 @@ export class TableScene extends Phaser.Scene {
     button.on("pointerdown", onClick);
     button.on("pointerover", () => button.setScale(1.04));
     button.on("pointerout", () => button.setScale(1));
+
     return button;
   }
 
   private startRound(): void {
-    if (!this.roundFinished) return;
+    if (!this.roundFinished) {
+      return;
+    }
+
     if (this.chips < WAGER) {
-      this.statusText.setText("Not enough chips to play. Come back after a reward.");
+      this.statusText.setText(
+        "Not enough chips to play. Come back after a reward."
+      );
       this.setButtonsEnabled(false);
       return;
     }
 
     this.chips -= WAGER;
     this.refreshBalances();
-    this.deck = shuffleDeck(createDeck());
-    this.playerHand = [drawCard(this.deck), drawCard(this.deck)];
-    this.dealerHand = [drawCard(this.deck), drawCard(this.deck)];
+
+    const shuffledDeck = shuffleDeck(createDeck());
+    const openingDeal = dealOpeningHands(shuffledDeck);
+
+    this.playerHand = openingDeal.playerHand;
+    this.dealerHand = openingDeal.dealerHand;
+    this.deck = openingDeal.remainingDeck;
     this.roundFinished = false;
 
     this.statusText.setText("H = hit  •  S = stand");
     this.setButtonsEnabled(true);
     this.refreshHandText(false);
 
-    if (isBlackjack(this.playerHand) || isBlackjack(this.dealerHand)) {
+    if (
+      isNaturalBlackjack(this.playerHand) ||
+      isNaturalBlackjack(this.dealerHand)
+    ) {
       this.resolveInitialBlackjacks();
     }
   }
 
   private resolveInitialBlackjacks(): void {
-    const playerBlackjack = isBlackjack(this.playerHand);
-    const dealerBlackjack = isBlackjack(this.dealerHand);
+    const playerBlackjack = isNaturalBlackjack(this.playerHand);
+    const dealerBlackjack = isNaturalBlackjack(this.dealerHand);
 
     if (playerBlackjack && dealerBlackjack) {
-      this.finishRound("Push: both have blackjack.", WAGER, 0, "A dramatic tie.");
-    } else if (playerBlackjack) {
-      const profit = blackjackProfit(WAGER);
-      this.finishRound("Blackjack!", WAGER + profit, profit, "Now that's style.");
-    } else {
-      this.finishRound("Dealer blackjack.", 0, 0, "The cards have spoken.");
+      this.finishRound(
+        "Push: both have blackjack.",
+        WAGER,
+        0,
+        "A dramatic tie."
+      );
+      return;
     }
+
+    if (playerBlackjack) {
+      const profit = Math.ceil(WAGER * 1.5);
+      this.finishRound(
+        "Blackjack!",
+        WAGER + profit,
+        profit,
+        "Now that's style."
+      );
+      return;
+    }
+
+    this.finishRound(
+      "Dealer blackjack.",
+      0,
+      0,
+      "The cards have spoken."
+    );
+  }
+
+  private takeCard(): Card {
+    const result = drawCard(this.deck);
+    this.deck = result.remainingDeck;
+    return result.card;
   }
 
   private hit(): void {
-    if (this.roundFinished) return;
-    this.playerHand.push(drawCard(this.deck));
+    if (this.roundFinished) {
+      return;
+    }
 
-    if (calculateHandValue(this.playerHand) > 21) {
-      this.finishRound("You bust. The fox wins.", 0, 0, "A bold choice.");
+    this.playerHand.push(this.takeCard());
+
+    if (calculateHandValue(this.playerHand).busted) {
+      this.finishRound(
+        "You bust. The fox wins.",
+        0,
+        0,
+        "A bold choice."
+      );
       return;
     }
 
@@ -179,22 +232,43 @@ export class TableScene extends Phaser.Scene {
   }
 
   private stand(): void {
-    if (this.roundFinished) return;
-
-    while (calculateHandValue(this.dealerHand) < 17) {
-      this.dealerHand.push(drawCard(this.deck));
+    if (this.roundFinished) {
+      return;
     }
 
-    const player = calculateHandValue(this.playerHand);
-    const dealer = calculateHandValue(this.dealerHand);
-
-    if (dealer > 21 || player > dealer) {
-      this.finishRound("You win!", WAGER * 2, WAGER, "Well played.");
-    } else if (player === dealer) {
-      this.finishRound("Push.", WAGER, 0, "A civilized tie.");
-    } else {
-      this.finishRound("Dealer wins.", 0, 0, "House manners.");
+    while (calculateHandValue(this.dealerHand).total < 17) {
+      this.dealerHand.push(this.takeCard());
     }
+
+    const playerTotal = calculateHandValue(this.playerHand).total;
+    const dealerValue = calculateHandValue(this.dealerHand);
+
+    if (dealerValue.busted || playerTotal > dealerValue.total) {
+      this.finishRound(
+        "You win!",
+        WAGER * 2,
+        WAGER,
+        "Well played."
+      );
+      return;
+    }
+
+    if (playerTotal === dealerValue.total) {
+      this.finishRound(
+        "Push.",
+        WAGER,
+        0,
+        "A civilized tie."
+      );
+      return;
+    }
+
+    this.finishRound(
+      "Dealer wins.",
+      0,
+      0,
+      "House manners."
+    );
   }
 
   private finishRound(
@@ -206,10 +280,12 @@ export class TableScene extends Phaser.Scene {
     this.roundFinished = true;
     this.chips += chipsReturned;
     this.dunkaroos += profitDunkaroos;
+
     this.refreshBalances();
     this.statusText.setText(`${message} Press N for another round.`);
     this.setButtonsEnabled(false);
     this.refreshHandText(true);
+
     void this.dealer.react(reaction);
   }
 
@@ -220,25 +296,37 @@ export class TableScene extends Phaser.Scene {
   }
 
   private refreshHandText(showDealerHoleCard: boolean): void {
-    const playerCards = this.playerHand.map((card) => `${card.rank}${card.suit}`).join("  ");
+    const playerCards = this.playerHand
+      .map((card) => `${card.rank}${card.suit}`)
+      .join("  ");
+
     const dealerCards = showDealerHoleCard
-      ? this.dealerHand.map((card) => `${card.rank}${card.suit}`).join("  ")
+      ? this.dealerHand
+          .map((card) => `${card.rank}${card.suit}`)
+          .join("  ")
       : `${this.dealerHand[0]?.rank}${this.dealerHand[0]?.suit}  ??`;
 
     const dealerTotal = showDealerHoleCard
-      ? ` (${calculateHandValue(this.dealerHand)})`
+      ? ` (${calculateHandValue(this.dealerHand).total})`
       : "";
 
+    const playerTotal = calculateHandValue(this.playerHand).total;
+
     this.handText.setText(
-      `Dealer: ${dealerCards}${dealerTotal}\n\nYou: ${playerCards} (${calculateHandValue(this.playerHand)})`
+      `Dealer: ${dealerCards}${dealerTotal}\n\n` +
+        `You: ${playerCards} (${playerTotal})`
     );
   }
 
   private setButtonsEnabled(enabled: boolean): void {
     for (const button of [this.hitButton, this.standButton]) {
       button.setAlpha(enabled ? 1 : 0.45);
-      if (enabled) button.setInteractive({ useHandCursor: true });
-      else button.disableInteractive();
+
+      if (enabled) {
+        button.setInteractive({ useHandCursor: true });
+      } else {
+        button.disableInteractive();
+      }
     }
   }
 }
