@@ -13,7 +13,7 @@ export const DEALER_ASSETS = Object.freeze({
       url: "/assets/sprites/dealer/duncan-idle.png",
       frameWidth: FRAME_WIDTH,
       frameHeight: FRAME_HEIGHT,
-      frameDurationsMs: [1000, 750, 1000, 750],
+      frameDurationsMs: [1000, 300, 500, 300],
       repeat: -1
     },
     blink: {
@@ -22,7 +22,7 @@ export const DEALER_ASSETS = Object.freeze({
       url: "/assets/sprites/dealer/duncan-blink.png",
       frameWidth: FRAME_WIDTH,
       frameHeight: FRAME_HEIGHT,
-      frameDurationsMs: [1000, 750, 100, 100, 100, 1000, 750],
+      frameDurationsMs: [1000, 300, 100, 100, 100, 500, 300],
       repeat: 0
     },
     twitchBlink: {
@@ -31,7 +31,7 @@ export const DEALER_ASSETS = Object.freeze({
       url: "/assets/sprites/dealer/duncan-twitch-blink.png",
       frameWidth: FRAME_WIDTH,
       frameHeight: FRAME_HEIGHT,
-      frameDurationsMs: [1000, 750, 100, 100, 100, 1000, 400, 100, 100, 100],
+      frameDurationsMs: [1000, 300, 100, 100, 100, 500, 300, 100, 100, 100],
       repeat: 0
     },
     twitchBlinkFast: {
@@ -40,7 +40,7 @@ export const DEALER_ASSETS = Object.freeze({
       url: "/assets/sprites/dealer/duncan-twitch-blink-fast.png",
       frameWidth: FRAME_WIDTH,
       frameHeight: FRAME_HEIGHT,
-      frameDurationsMs: [1000, 100, 100, 100, 100, 750, 100, 100, 100, 100],
+      frameDurationsMs: [1000, 100, 100, 100, 100, 500, 100, 100, 100, 100],
       repeat: 0
     }
   }
