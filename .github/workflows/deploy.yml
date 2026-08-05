@@ -108,17 +108,18 @@ jobs:
 
               source "$NVM_DIR/nvm.sh"
               nvm use 22
-              export NODE_ENV=production
 
               cd /var/www/deal-me-in-dunc
 
               git fetch origin main
               git reset --hard origin/main
 
-              npm ci
+              npm ci --include=dev
 
               npm run build
               npm run db:migrate
+
+              export NODE_ENV=production
 
               if ! command -v pm2 >/dev/null 2>&1; then
                 echo "PM2 is not installed for the deployment user."
