@@ -127,13 +127,15 @@ jobs:
                 exit 1
               fi
 
+              # Recreate the process so PM2 cannot retain stale database
+              # credentials after the repository .env file changes.
               if pm2 describe dealmeindunc-api >/dev/null 2>&1; then
-                pm2 restart dealmeindunc-api --update-env
-              else
-                pm2 start apps/api/dist/index.js \
-                  --name dealmeindunc-api \
-                  --cwd /var/www/deal-me-in-dunc
+                pm2 delete dealmeindunc-api
               fi
+
+              pm2 start apps/api/dist/index.js \
+                --name dealmeindunc-api \
+                --cwd /var/www/deal-me-in-dunc
 
               pm2 save
 
