@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { PublicUser } from "@fox-blackjack/shared-types";
 import { DEALER_ASSETS, SCENE_ASSETS } from "../assets";
+import { GAME_FONT_FAMILY } from "../config/typography";
 import { Dealer } from "../objects/Dealer";
 
 const COLORS = {
@@ -63,7 +64,7 @@ export class LobbyScene extends Phaser.Scene {
 
   private drawHeader(user: PublicUser): void {
     this.add.text(46, 40, "DEAL ME IN, DUNC", {
-      fontFamily: "monospace",
+      fontFamily: GAME_FONT_FAMILY,
       fontSize: "25px",
       fontStyle: "bold",
       color: "#ead6ae"
@@ -71,7 +72,7 @@ export class LobbyScene extends Phaser.Scene {
 
     this.add
       .text(914, 38, `${user.username.toUpperCase()}\n${user.chips} CHIPS  ·  ${user.dunkaroos} DUNKAROOS`, {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "15px",
         color: "#d3b77f",
         align: "right",
@@ -91,7 +92,7 @@ export class LobbyScene extends Phaser.Scene {
 
     this.add
       .text(areaX, 58, "320 × 250 DUNCAN ANIMATION AREA", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "12px",
         color: "#a98a61"
       })
@@ -109,7 +110,7 @@ export class LobbyScene extends Phaser.Scene {
 
     this.add
       .text(480, 365, "THE TABLE IS OPEN", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "18px",
         color: "#bca56f"
       })
@@ -136,7 +137,7 @@ export class LobbyScene extends Phaser.Scene {
   ): Phaser.GameObjects.Text {
     const button = this.add
       .text(x, y, label, {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: primary ? "25px" : "16px",
         fontStyle: "bold",
         color: primary ? "#2a1b13" : "#ead6ae",

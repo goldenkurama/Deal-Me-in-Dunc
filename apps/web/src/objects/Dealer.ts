@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { DEALER_ASSETS } from "../assets";
+import { GAME_FONT_FAMILY } from "../config/typography";
 
 export class Dealer extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -23,7 +24,7 @@ export class Dealer extends Phaser.GameObjects.Sprite {
   async react(message: string): Promise<void> {
     const speech = this.scene.add
       .text(this.x + 90, this.y - 170, message, {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "18px",
         color: "#2a1738",
         backgroundColor: "#f6e8c8",

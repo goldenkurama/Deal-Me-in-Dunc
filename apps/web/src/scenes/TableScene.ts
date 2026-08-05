@@ -11,6 +11,7 @@ import {
 } from "@fox-blackjack/game-core";
 import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
+import { GAME_FONT_FAMILY } from "../config/typography";
 
 const WAGER = 10;
 
@@ -46,7 +47,7 @@ export class TableScene extends Phaser.Scene {
 
     this.statusText = this.add
       .text(480, 332, "", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "20px",
         color: "#f6e8c8"
       })
@@ -54,7 +55,7 @@ export class TableScene extends Phaser.Scene {
 
     this.handText = this.add
       .text(480, 405, "", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "22px",
         color: "#ffffff",
         align: "center"
@@ -63,7 +64,7 @@ export class TableScene extends Phaser.Scene {
 
     this.balancesText = this.add
       .text(925, 28, "", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "18px",
         color: "#f7d56b",
         align: "right"
@@ -107,7 +108,7 @@ export class TableScene extends Phaser.Scene {
 
     this.add
       .text(28, 28, "DEAL ME IN, DUNC", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "24px",
         color: "#f6e8c8"
       })
@@ -115,7 +116,7 @@ export class TableScene extends Phaser.Scene {
 
     this.add
       .text(28, 55, `BET: ${WAGER} CHIPS`, {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "16px",
         color: "#d9c9a5"
       })
@@ -130,7 +131,7 @@ export class TableScene extends Phaser.Scene {
   ): Phaser.GameObjects.Text {
     const button = this.add
       .text(x, y, label, {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "24px",
         color: "#f6e8c8",
         backgroundColor: "#5b3b28",

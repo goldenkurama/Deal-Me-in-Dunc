@@ -1,6 +1,14 @@
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("/assets/fonts/PixelifySans-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Pixelify Sans", monospace;
   --night: #18120e;
   --room: #2b2119;
   --wood: #5b3b28;

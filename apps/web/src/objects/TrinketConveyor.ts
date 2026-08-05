@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { TRINKET_ASSETS } from "../assets";
+import { GAME_FONT_FAMILY } from "../config/typography";
 
 export class TrinketConveyor extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -74,7 +75,7 @@ export class TrinketConveyor extends Phaser.GameObjects.Container {
       this.add(
         scene.add
           .text(151, center.y, labels[index], {
-            fontFamily: "monospace",
+            fontFamily: GAME_FONT_FAMILY,
             fontSize: "10px",
             fontStyle: "bold",
             color: "#ead6ae",

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { GAME_FONT_FAMILY } from "../config/typography";
 
 export class ShopScene extends Phaser.Scene {
   constructor() {
@@ -18,7 +19,7 @@ export class ShopScene extends Phaser.Scene {
 
     this.add
       .text(480, 129, "DUNC'S BACK-ROOM SHOP", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "34px",
         fontStyle: "bold",
         color: "#2a1b13"
@@ -27,7 +28,7 @@ export class ShopScene extends Phaser.Scene {
 
     this.add
       .text(480, 258, "Inventory will live here.\nCustom cosmetics plug into the asset manifests.", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "20px",
         color: "#62452e",
         align: "center",
@@ -37,7 +38,7 @@ export class ShopScene extends Phaser.Scene {
 
     const back = this.add
       .text(480, 405, "BACK TO TABLE", {
-        fontFamily: "monospace",
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "20px",
         fontStyle: "bold",
         color: "#f4e3bf",

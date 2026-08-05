@@ -2,6 +2,7 @@ import type { PublicUser } from "@fox-blackjack/shared-types";
 import { ApiError, getCurrentUser, login, logout, register } from "./api/authApi";
 import { renderAuthView, type AuthMode } from "./auth/AuthView";
 import { createGame } from "./game/createGame";
+import { GAME_FONT_NAME } from "./config/typography";
 import "./styles.css";
 
 const rootElement = document.querySelector<HTMLElement>("#app");
@@ -101,6 +102,8 @@ function renderRoute(): void {
 async function start(): Promise<void> {
   root.className = "app app--loading";
   root.innerHTML = `<div class="loading-card">SHUFFLING THE DECK...</div>`;
+
+  await document.fonts.load(`16px "${GAME_FONT_NAME}"`);
 
   try {
     currentUser = await getCurrentUser();
