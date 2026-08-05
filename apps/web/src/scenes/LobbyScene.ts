@@ -25,8 +25,8 @@ export class LobbyScene extends Phaser.Scene {
     const user = this.registry.get("currentUser") as PublicUser;
     this.addRoom();
     this.drawHeader(user);
-    this.addDealerPlaceholder();
     this.addTable();
+    this.addDealerPlaceholder();
 
     this.createButton(480, 425, "PLAY", () => this.scene.start("TableScene"), true);
     this.createButton(864, 500, "SHOP", () => this.scene.start("ShopScene"));
@@ -82,7 +82,7 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private addDealerPlaceholder(): void {
-    const { width, height } = DEALER_ASSETS.idle.displayArea;
+    const { width, height } = DEALER_ASSETS.displayArea;
     const areaX = 480;
     const areaBottom = 320;
     const dealer = new Dealer(this, areaX, areaBottom);

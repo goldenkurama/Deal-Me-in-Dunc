@@ -1,14 +1,56 @@
+const FRAME_WIDTH = 320;
+const FRAME_HEIGHT = 250;
+
 export const DEALER_ASSETS = Object.freeze({
-  idle: {
-    key: "dealer-idle-sheet",
-    url: "/assets/sprites/dealer/dealer-idle.png",
-    frameWidth: 64,
-    frameHeight: 96,
-    firstFrame: 0,
-    lastFrame: 3,
-    displayArea: {
-      width: 320,
-      height: 250
+  displayArea: {
+    width: FRAME_WIDTH,
+    height: FRAME_HEIGHT
+  },
+  animations: {
+    idle: {
+      key: "duncan-idle-sheet",
+      animationKey: "duncan-idle",
+      url: "/assets/sprites/dealer/duncan-idle.png",
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+      frameDurationsMs: [1000, 750, 1000, 750],
+      repeat: -1
+    },
+    blink: {
+      key: "duncan-blink-sheet",
+      animationKey: "duncan-blink",
+      url: "/assets/sprites/dealer/duncan-blink.png",
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+      frameDurationsMs: [1000, 750, 100, 100, 100, 1000, 750],
+      repeat: 0
+    },
+    twitchBlink: {
+      key: "duncan-twitch-blink-sheet",
+      animationKey: "duncan-twitch-blink",
+      url: "/assets/sprites/dealer/duncan-twitch-blink.png",
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+      frameDurationsMs: [1000, 750, 100, 100, 100, 1000, 400, 100, 100, 100],
+      repeat: 0
+    },
+    twitchBlinkFast: {
+      key: "duncan-twitch-blink-fast-sheet",
+      animationKey: "duncan-twitch-blink-fast",
+      url: "/assets/sprites/dealer/duncan-twitch-blink-fast.png",
+      frameWidth: FRAME_WIDTH,
+      frameHeight: FRAME_HEIGHT,
+      frameDurationsMs: [1000, 100, 100, 100, 100, 750, 100, 100, 100, 100],
+      repeat: 0
     }
   }
-});
+} as const);
+
+export const DEALER_IDLE_VARIATIONS = [
+  { name: "blink", weight: 5 },
+  { name: "twitchBlink", weight: 3 },
+  { name: "twitchBlinkFast", weight: 1 }
+] as const;
+
+export type DealerIdleVariationName =
+  (typeof DEALER_IDLE_VARIATIONS)[number]["name"];

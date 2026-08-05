@@ -13,14 +13,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.spritesheet(
-      DEALER_ASSETS.idle.key,
-      DEALER_ASSETS.idle.url,
-      {
-        frameWidth: DEALER_ASSETS.idle.frameWidth,
-        frameHeight: DEALER_ASSETS.idle.frameHeight
-      }
-    );
+    for (const animation of Object.values(DEALER_ASSETS.animations)) {
+      this.load.spritesheet(animation.key, animation.url, {
+        frameWidth: animation.frameWidth,
+        frameHeight: animation.frameHeight
+      });
+    }
 
     this.load.image(CARD_ASSETS.back.key, CARD_ASSETS.back.url);
     this.load.image(UI_ASSETS.chip.key, UI_ASSETS.chip.url);
@@ -44,15 +42,19 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.anims.create({
-      key: "dealer-idle",
-      frames: this.anims.generateFrameNumbers("dealer-idle-sheet", {
-        start: DEALER_ASSETS.idle.firstFrame,
-        end: DEALER_ASSETS.idle.lastFrame
-      }),
-      frameRate: 4,
-      repeat: -1
-    });
+    for (const animation of Object.values(DEALER_ASSETS.animations)) {
+      const baseFrameDuration = Math.min(...animation.frameDurationsMs);
+      this.anims.create({
+        key: animation.animationKey,
+        frames: animation.frameDurationsMs.map((duration, frame) => ({
+          key: animation.key,
+          frame,
+          duration: duration - baseFrameDuration
+        })),
+        frameRate: 1000 / baseFrameDuration,
+        repeat: animation.repeat
+      });
+    }
 
     this.scene.start("LobbyScene");
   }
