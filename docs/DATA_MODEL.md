@@ -1,15 +1,15 @@
 # Data-model notes
 
-The SQL schema is in `database/migrations/001_initial_schema.sql`.
+The base SQL schema is in `database/migrations/001_initial_schema.sql`.
 
 ## Tables
 
 - `users`: credentials and current chip/dunkaroo balances
 - `daily_login_grants`: one login grant per user and Eastern date
 - `daily_dealer_attempts`: one passcode attempt per user and Eastern date
+- `user_sessions`: hashed, expiring login sessions for HTTP-only browser cookies
 - `user_items`: permanent ownership of fixed catalog item keys
 - `user_equipment`: one nullable equipped item key per cosmetic category
-- `game_sessions`: internal hand bookkeeping; not exposed as player history
 - `currency_transactions`: append-only balance ledger
 - `schema_migrations`: migration runner bookkeeping
 

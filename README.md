@@ -53,6 +53,10 @@ npm run dev:api
 
 Health check: `http://localhost:3000/api/health`
 
+The browser uses hash routes so it works behind a simple static Nginx setup:
+`/#/login`, `/#/register`, and `/#/game`. Authentication uses an HTTP-only
+session cookie backed by hashed session tokens in MySQL.
+
 ## Useful commands
 
 ```bash

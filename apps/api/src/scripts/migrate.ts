@@ -1,10 +1,13 @@
-import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
+import dotenv from "dotenv";
 import mysql from "mysql2/promise";
 import type { RowDataPacket } from "mysql2";
 
-const migrationsDirectory = path.resolve(process.cwd(), "../../database/migrations");
+const repositoryRoot = path.resolve(process.cwd(), "../..");
+dotenv.config({ path: path.join(repositoryRoot, ".env") });
+
+const migrationsDirectory = path.join(repositoryRoot, "database/migrations");
 
 const connection = await mysql.createConnection({
   host: process.env.DB_HOST ?? "127.0.0.1",

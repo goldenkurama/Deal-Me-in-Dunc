@@ -1,4 +1,4 @@
--- Deal Me In, Dunc
+-- Deal Me In, Dunc: initial persistent schema
 -- Persistent-only database schema
 -- MySQL 8.0+
 --

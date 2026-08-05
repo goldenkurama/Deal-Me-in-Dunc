@@ -1,8 +1,9 @@
 import Phaser from "phaser";
+import { DEALER_ASSETS } from "../assets";
 
 export class Dealer extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "dealer-idle-sheet", 0);
+    super(scene, x, y, DEALER_ASSETS.idle.key, 0);
 
     scene.add.existing(this);
     this.setOrigin(0.5, 1);
@@ -12,6 +13,11 @@ export class Dealer extends Phaser.GameObjects.Sprite {
 
   playIdle(): void {
     this.play("dealer-idle", true);
+  }
+
+  fitInside(width: number, height: number): this {
+    this.setScale(Math.min(width / this.width, height / this.height));
+    return this;
   }
 
   async react(message: string): Promise<void> {

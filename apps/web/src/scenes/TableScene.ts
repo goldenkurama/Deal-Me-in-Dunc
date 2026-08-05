@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import type { PublicUser } from "@fox-blackjack/shared-types";
 import {
   calculateHandValue,
   createDeck,
@@ -9,6 +10,7 @@ import {
   type Card
 } from "@fox-blackjack/game-core";
 import { Dealer } from "../objects/Dealer";
+import { TrinketConveyor } from "../objects/TrinketConveyor";
 
 const WAGER = 10;
 
@@ -24,8 +26,8 @@ export class TableScene extends Phaser.Scene {
   private hitButton!: Phaser.GameObjects.Text;
   private standButton!: Phaser.GameObjects.Text;
 
-  // Local visual prototype only: 100 starting chips + first daily login grant.
-  private chips = 200;
+  // Hand results remain local until the transactional game API is implemented.
+  private chips = 100;
   private dunkaroos = 0;
   private roundFinished = true;
 
@@ -34,11 +36,16 @@ export class TableScene extends Phaser.Scene {
   }
 
   create(): void {
+    const user = this.registry.get("currentUser") as PublicUser;
+    this.chips = user.chips;
+    this.dunkaroos = user.dunkaroos;
+
     this.drawRoom();
-    this.dealer = new Dealer(this, 480, 275);
+    this.dealer = new Dealer(this, 480, 300).fitInside(320, 250);
+    new TrinketConveyor(this, 16, 170);
 
     this.statusText = this.add
-      .text(480, 318, "", {
+      .text(480, 332, "", {
         fontFamily: "monospace",
         fontSize: "20px",
         color: "#f6e8c8"
@@ -46,7 +53,7 @@ export class TableScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.handText = this.add
-      .text(480, 395, "", {
+      .text(480, 405, "", {
         fontFamily: "monospace",
         fontSize: "22px",
         color: "#ffffff",
@@ -63,8 +70,11 @@ export class TableScene extends Phaser.Scene {
       })
       .setOrigin(1, 0);
 
-    this.hitButton = this.createButton(375, 485, "HIT", () => this.hit());
-    this.standButton = this.createButton(585, 485, "STAND", () => this.stand());
+    this.hitButton = this.createButton(375, 495, "HIT", () => this.hit());
+    this.standButton = this.createButton(585, 495, "STAND", () => this.stand());
+    this.createButton(750, 495, "LOBBY", () => this.scene.start("LobbyScene"))
+      .setFontSize(17)
+      .setPadding(15, 9);
 
     this.input.keyboard?.on("keydown-H", () => this.hit());
     this.input.keyboard?.on("keydown-S", () => this.stand());
@@ -77,23 +87,23 @@ export class TableScene extends Phaser.Scene {
   private drawRoom(): void {
     const graphics = this.add.graphics();
 
-    graphics.fillStyle(0x261a30);
+    graphics.fillStyle(0x33271d);
     graphics.fillRect(0, 0, 960, 300);
 
-    graphics.fillStyle(0x3c1e32);
+    graphics.fillStyle(0x241b14);
     graphics.fillRect(0, 0, 960, 78);
 
-    graphics.fillStyle(0xd3a03c);
+    graphics.fillStyle(0x8d6840);
     graphics.fillRect(0, 76, 960, 5);
 
-    graphics.fillStyle(0x0e5a47);
-    graphics.fillRoundedRect(90, 265, 780, 275, 140);
+    graphics.fillStyle(0x234c35);
+    graphics.fillRoundedRect(60, 270, 840, 310, 135);
 
-    graphics.lineStyle(12, 0x5d321f);
-    graphics.strokeRoundedRect(90, 265, 780, 275, 140);
+    graphics.lineStyle(14, 0x5b3b28);
+    graphics.strokeRoundedRect(60, 270, 840, 310, 135);
 
     graphics.fillStyle(0x071c16, 0.35);
-    graphics.fillEllipse(480, 395, 500, 170);
+    graphics.fillEllipse(480, 405, 540, 180);
 
     this.add
       .text(28, 28, "DEAL ME IN, DUNC", {
@@ -123,7 +133,7 @@ export class TableScene extends Phaser.Scene {
         fontFamily: "monospace",
         fontSize: "24px",
         color: "#f6e8c8",
-        backgroundColor: "#702d47",
+        backgroundColor: "#5b3b28",
         padding: { x: 24, y: 11 }
       })
       .setOrigin(0.5)

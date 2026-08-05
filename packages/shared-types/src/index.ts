@@ -22,6 +22,15 @@ export interface PublicUser {
   readonly dunkaroos: number;
 }
 
+export interface AuthResponse {
+  readonly user: PublicUser;
+}
+
+export interface AuthCredentials {
+  readonly username: string;
+  readonly password: string;
+}
+
 export interface CurrencyBalances {
   readonly chips: number;
   readonly dunkaroos: number;

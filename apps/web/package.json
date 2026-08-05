@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@fox-blackjack/game-core": "*",
+    "@fox-blackjack/shared-types": "*",
     "phaser": "^3.90.0"
   },
   "devDependencies": {

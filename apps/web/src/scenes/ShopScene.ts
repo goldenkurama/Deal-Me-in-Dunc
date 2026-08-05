@@ -6,12 +6,47 @@ export class ShopScene extends Phaser.Scene {
   }
 
   create(): void {
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x241b14);
+    graphics.fillRect(0, 0, 960, 540);
+    graphics.fillStyle(0xe5c99b);
+    graphics.fillRoundedRect(120, 69, 720, 402, 18);
+    graphics.lineStyle(10, 0x5b3b28);
+    graphics.strokeRoundedRect(120, 69, 720, 402, 18);
+    graphics.lineStyle(3, 0xb88d59);
+    graphics.strokeRoundedRect(136, 85, 688, 370, 12);
+
     this.add
-      .text(480, 250, "Shop scene placeholder", {
+      .text(480, 129, "DUNC'S BACK-ROOM SHOP", {
         fontFamily: "monospace",
-        fontSize: "32px",
-        color: "#f6e8c8"
+        fontSize: "34px",
+        fontStyle: "bold",
+        color: "#2a1b13"
       })
       .setOrigin(0.5);
+
+    this.add
+      .text(480, 258, "Inventory will live here.\nCustom cosmetics plug into the asset manifests.", {
+        fontFamily: "monospace",
+        fontSize: "20px",
+        color: "#62452e",
+        align: "center",
+        lineSpacing: 12
+      })
+      .setOrigin(0.5);
+
+    const back = this.add
+      .text(480, 405, "BACK TO TABLE", {
+        fontFamily: "monospace",
+        fontSize: "20px",
+        fontStyle: "bold",
+        color: "#f4e3bf",
+        backgroundColor: "#345b42",
+        padding: { x: 22, y: 11 }
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    back.on("pointerdown", () => this.scene.start("LobbyScene"));
   }
 }

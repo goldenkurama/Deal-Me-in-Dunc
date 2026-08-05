@@ -108,6 +108,7 @@ jobs:
 
               source "$NVM_DIR/nvm.sh"
               nvm use 22
+              export NODE_ENV=production
 
               cd /var/www/deal-me-in-dunc
 
@@ -117,6 +118,7 @@ jobs:
               npm ci
 
               npm run build
+              npm run db:migrate
 
               if ! command -v pm2 >/dev/null 2>&1; then
                 echo "PM2 is not installed for the deployment user."
