@@ -117,6 +117,7 @@ jobs:
               npm ci --include=dev
 
               npm run build
+              rsync --archive --delete apps/web/dist/ public/
               npm run db:migrate
 
               export NODE_ENV=production
