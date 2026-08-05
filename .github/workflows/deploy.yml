@@ -138,6 +138,7 @@ jobs:
                 --silent \
                 --show-error \
                 --retry 10 \
+                --retry-connrefused \
                 --retry-delay 1 \
                 http://127.0.0.1:3000/api/health
 
