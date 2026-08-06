@@ -7,8 +7,7 @@ import { TableScene } from "../scenes/TableScene";
 
 export function createGame(
   parent: HTMLElement,
-  user: PublicUser,
-  onLogout: () => void
+  user: PublicUser
 ): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.AUTO,
@@ -25,7 +24,6 @@ export function createGame(
     callbacks: {
       preBoot(game) {
         game.registry.set("currentUser", user);
-        game.events.on("auth:logout", onLogout);
       }
     },
     scene: [BootScene, LobbyScene, TableScene, ShopScene]

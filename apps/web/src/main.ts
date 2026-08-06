@@ -60,16 +60,44 @@ function showGame(user: PublicUser): void {
   root.className = "app app--game";
   root.innerHTML = `
     <main class="game-page">
-      <div class="game-page__frame">
-        <div id="game" aria-label="Deal Me In, Dunc game canvas"></div>
+      <div class="game-page__layout">
+        <nav class="game-menu" aria-label="Game menu">
+          <button class="game-menu__button game-menu__button--daily" type="button">
+            <span>DAILY</span>
+            <span>PASSWORD</span>
+          </button>
+          <button class="game-menu__button" id="shop-button" type="button">SHOP</button>
+          <button class="game-menu__button" id="logout-button" type="button">LOG OUT</button>
+        </nav>
+
+        <div class="game-page__frame">
+          <div id="game" aria-label="Deal Me In, Dunc game canvas"></div>
+        </div>
+
+        <section class="audio-controls" aria-label="Audio controls">
+          <label class="audio-control">
+            <span>MUSIC</span>
+            <input type="range" min="0" max="100" value="70" aria-label="Music volume">
+          </label>
+          <label class="audio-control">
+            <span>SFX</span>
+            <input type="range" min="0" max="100" value="70" aria-label="Sound effects volume">
+          </label>
+        </section>
       </div>
     </main>
   `;
 
   const gameRoot = root.querySelector<HTMLElement>("#game");
+  const shopButton = root.querySelector<HTMLButtonElement>("#shop-button");
+  const logoutButton = root.querySelector<HTMLButtonElement>("#logout-button");
   if (!gameRoot) throw new Error("Missing game canvas root");
+  if (!shopButton || !logoutButton) throw new Error("Missing game menu controls");
 
-  game = createGame(gameRoot, user, () => {
+  game = createGame(gameRoot, user);
+
+  shopButton.addEventListener("click", () => game?.scene.start("ShopScene"));
+  logoutButton.addEventListener("click", () => {
     void (async () => {
       await logout().catch(() => undefined);
       currentUser = null;

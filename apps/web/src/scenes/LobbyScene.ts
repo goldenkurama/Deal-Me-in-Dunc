@@ -29,8 +29,6 @@ export class LobbyScene extends Phaser.Scene {
     this.addDealerPlaceholder();
 
     this.createButton(480, 425, "PLAY", () => this.scene.start("TableScene"), true);
-    this.createButton(864, 500, "SHOP", () => this.scene.start("ShopScene"));
-    this.createButton(96, 500, "LOG OUT", () => this.game.events.emit("auth:logout"));
   }
 
   private drawRoom(): void {
