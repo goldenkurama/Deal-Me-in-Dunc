@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { PublicUser } from "@fox-blackjack/shared-types";
 import { DEALER_ASSETS, SCENE_ASSETS } from "../assets";
 import { GAME_FONT_FAMILY } from "../config/typography";
+import { selectBeforePlayDialogue } from "../dialogue/duncanDialogue";
 import { Dealer } from "../objects/Dealer";
 
 const COLORS = {
@@ -26,9 +27,16 @@ export class LobbyScene extends Phaser.Scene {
     this.addRoom();
     this.drawHeader(user);
     this.addTable();
-    this.addDealerPlaceholder();
+    const dealer = this.addDealerPlaceholder();
 
-    this.createButton(480, 425, "PLAY", () => this.scene.start("TableScene"), true);
+    this.createButton(480, 425, "PLAY", () => {
+      void this.startTableAfterDialogue(dealer);
+    }, true);
+  }
+
+  private async startTableAfterDialogue(dealer: Dealer): Promise<void> {
+    await dealer.speak(selectBeforePlayDialogue());
+    if (this.scene.isActive()) this.scene.start("TableScene");
   }
 
   private drawRoom(): void {
@@ -79,7 +87,7 @@ export class LobbyScene extends Phaser.Scene {
       .setOrigin(1, 0);
   }
 
-  private addDealerPlaceholder(): void {
+  private addDealerPlaceholder(): Dealer {
     const { width, height } = DEALER_ASSETS.displayArea;
     const areaX = 480;
     const areaBottom = 320;
@@ -95,6 +103,8 @@ export class LobbyScene extends Phaser.Scene {
         color: "#a98a61"
       })
       .setOrigin(0.5);
+
+    return dealer;
   }
 
   private drawTable(): void {

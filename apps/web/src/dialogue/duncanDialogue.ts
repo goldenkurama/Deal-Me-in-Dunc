@@ -4,76 +4,107 @@ import {
   selectDialogueCandidate
 } from "@fox-blackjack/game-core";
 
+export const DUNCAN_BEFORE_PLAY_DIALOGUE = [
+  "You here to play hand?",
+  "Dude… You gonna play or what?",
+  "Wassup dawg."
+] as const;
+
+export type DuncanDialogueScript =
+  | {
+      readonly kind: "lines";
+      readonly lines: readonly string[];
+    }
+  | {
+      readonly kind: "yes-no";
+      readonly prompt: string;
+      readonly yes: readonly string[];
+      readonly no: readonly string[];
+    };
+
 export interface DuncanDialogueContext {
   readonly completedHands: number;
   readonly outcome: HandOutcome;
-  readonly playerBusted: boolean;
-  readonly wager: number;
-  readonly chipProfit: number;
-  readonly chips: number;
-  readonly dunkaroos: number;
+  readonly lostFiveInARow: boolean;
+  readonly bustedAfterHighHit: boolean;
 }
 
 export interface DuncanDialogueEntry {
   readonly id: string;
-  readonly text: string;
+  readonly script: DuncanDialogueScript;
   readonly weight: number;
   readonly chance: number;
   readonly when?: (context: DuncanDialogueContext) => boolean;
 }
 
 /**
- * Add circumstance-specific five-hand dialogue here. `chance` controls whether
- * an otherwise eligible line enters the weighted selection for that cycle.
+ * Circumstance-specific entries only compete for the five-hand dialogue slot
+ * when their requirement is true and their chance roll succeeds.
  */
 export const DUNCAN_CONTEXTUAL_DIALOGUE: readonly DuncanDialogueEntry[] = [
   {
-    id: "cycle-blackjack",
-    text: "Now that's style.",
+    id: "cycle-win",
+    script: { kind: "lines", lines: ["That’s crazy dawg."] },
     weight: 1,
-    chance: 0.65,
-    when: ({ outcome }) => outcome === "player-blackjack"
+    chance: 0.55,
+    when: ({ outcome }) =>
+      outcome === "player-win" || outcome === "player-blackjack"
   },
   {
-    id: "cycle-player-win",
-    text: "Well played.",
+    id: "cycle-five-losses",
+    script: {
+      kind: "lines",
+      lines: ["Dude, is your name Owen?", "O and 5!"]
+    },
     weight: 1,
-    chance: 0.4,
-    when: ({ outcome }) => outcome === "player-win"
+    chance: 0.75,
+    when: ({ lostFiveInARow }) => lostFiveInARow
   },
   {
-    id: "cycle-push",
-    text: "A civilized tie.",
+    id: "cycle-high-hit-bust",
+    script: {
+      kind: "lines",
+      lines: ["You do know how to play Blackjack right?"]
+    },
     weight: 1,
-    chance: 0.45,
-    when: ({ outcome }) => outcome === "push"
-  },
-  {
-    id: "cycle-player-bust",
-    text: "A bold choice.",
-    weight: 1,
-    chance: 0.45,
-    when: ({ playerBusted }) => playerBusted
-  },
-  {
-    id: "cycle-dealer-win",
-    text: "The cards have spoken.",
-    weight: 1,
-    chance: 0.35,
-    when: ({ outcome, playerBusted }) =>
-      outcome === "dealer-win" && !playerBusted
+    chance: 0.7,
+    when: ({ bustedAfterHighHit }) => bustedAfterHighHit
   }
 ];
 
-/** General lines guarantee that each five-hand dialogue slot has a fallback. */
+/** These two scripts are always eligible at hands 5, 10, 15, and so on. */
 export const DUNCAN_GENERAL_DIALOGUE: readonly DuncanDialogueEntry[] = [
   {
-    id: "cycle-five-hands",
-    text: "Five hands down. Let's see what the next five bring.",
+    id: "cycle-hit-sixteen",
+    script: {
+      kind: "yes-no",
+      prompt: "Do you hit on 16?",
+      no: ["Coward."],
+      yes: ["Gross. I only hit on 18 plus."]
+    },
+    weight: 1,
+    chance: 1
+  },
+  {
+    id: "cycle-ring-finger",
+    script: {
+      kind: "lines",
+      lines: [
+        "Dude, did you know that if your ring finger’s the same size as your index finger, that means you're gay?",
+        "Dude… Why'd you check?"
+      ]
+    },
     weight: 1,
     chance: 1
   }
 ];
+
+export function selectBeforePlayDialogue(
+  random: () => number = Math.random
+): string {
+  const index = Math.floor(random() * DUNCAN_BEFORE_PLAY_DIALOGUE.length);
+  return DUNCAN_BEFORE_PLAY_DIALOGUE[index] ?? DUNCAN_BEFORE_PLAY_DIALOGUE[0];
+}
 
 export function selectDuncanCycleDialogue(
   context: DuncanDialogueContext,

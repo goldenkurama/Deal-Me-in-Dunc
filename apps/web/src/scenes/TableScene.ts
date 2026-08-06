@@ -16,7 +16,10 @@ import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
 import { GAME_FONT_FAMILY } from "../config/typography";
 import { settleCompletedHand } from "../api/gameApi";
-import { selectDuncanCycleDialogue } from "../dialogue/duncanDialogue";
+import {
+  selectDuncanCycleDialogue,
+  type DuncanDialogueScript
+} from "../dialogue/duncanDialogue";
 
 const MINIMUM_BET = 10;
 const BET_INCREMENT = 10;
@@ -47,6 +50,8 @@ export class TableScene extends Phaser.Scene {
   private settlementPending = false;
   private settlementFailed = false;
   private completedHands = 0;
+  private consecutiveLosses = 0;
+  private hitAtEighteenOrHigher = false;
 
   constructor() {
     super("TableScene");
@@ -214,6 +219,7 @@ export class TableScene extends Phaser.Scene {
     this.selectedBet = Math.min(this.selectedBet, maximumBet);
     this.activeWager = this.selectedBet;
     this.activeHandId = crypto.randomUUID();
+    this.hitAtEighteenOrHigher = false;
     this.chips -= this.activeWager;
     this.roundFinished = false;
     this.refreshBalances();
@@ -246,6 +252,9 @@ export class TableScene extends Phaser.Scene {
   private hit(): void {
     if (this.roundFinished) return;
 
+    if (calculateHandValue(this.playerHand).total >= 18) {
+      this.hitAtEighteenOrHigher = true;
+    }
     this.playerHand.push(this.takeCard());
 
     if (calculateHandValue(this.playerHand).busted) {
@@ -300,6 +309,8 @@ export class TableScene extends Phaser.Scene {
     this.chips = balances.chips;
     this.dunkaroos = balances.dunkaroos;
     this.completedHands += 1;
+    this.consecutiveLosses =
+      resolution.outcome === "dealer-win" ? this.consecutiveLosses + 1 : 0;
     this.activeHandId = "";
     this.updateRegisteredUser();
     this.refreshBalances();
@@ -308,17 +319,29 @@ export class TableScene extends Phaser.Scene {
     const dialogue = selectDuncanCycleDialogue({
       completedHands: this.completedHands,
       outcome: resolution.outcome,
-      playerBusted: calculateHandValue(this.playerHand).busted,
-      wager: resolution.wager,
-      chipProfit: resolution.chipProfit,
-      chips: this.chips,
-      dunkaroos: this.dunkaroos
+      lostFiveInARow: this.consecutiveLosses >= 5,
+      bustedAfterHighHit:
+        this.hitAtEighteenOrHigher &&
+        calculateHandValue(this.playerHand).busted
     });
 
-    if (dialogue) await this.dealer.speak(dialogue.text);
+    if (dialogue) await this.playDialogueScript(dialogue.script);
 
     this.settlementPending = false;
     this.enterBettingState(resultMessage);
+  }
+
+  private async playDialogueScript(script: DuncanDialogueScript): Promise<void> {
+    if (script.kind === "lines") {
+      for (const line of script.lines) await this.dealer.speak(line);
+      return;
+    }
+
+    const choice = await this.dealer.askYesNo(script.prompt);
+    if (!choice) return;
+
+    const response = choice === "yes" ? script.yes : script.no;
+    for (const line of response) await this.dealer.speak(line);
   }
 
   private updateRegisteredUser(): void {
