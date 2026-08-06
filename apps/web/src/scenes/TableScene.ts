@@ -35,9 +35,8 @@ export class TableScene extends Phaser.Scene {
   private decreaseBetButton!: Phaser.GameObjects.Text;
   private betButton!: Phaser.GameObjects.Text;
   private increaseBetButton!: Phaser.GameObjects.Text;
-  private dealButton!: Phaser.GameObjects.Text;
 
-  // Hand results remain local until the transactional game API is implemented.
+  // The API confirms and persists these displayed balances after every hand.
   private chips = 100;
   private dunkaroos = 0;
   private selectedBet = MINIMUM_BET;
@@ -90,21 +89,17 @@ export class TableScene extends Phaser.Scene {
     this.hitButton = this.createButton(375, 495, "HIT", () => this.hit());
     this.standButton = this.createButton(585, 495, "STAND", () => this.stand());
 
-    this.decreaseBetButton = this.createButton(245, 495, "-10", () =>
+    this.decreaseBetButton = this.createButton(350, 495, "-10", () =>
       this.adjustBet(-BET_INCREMENT)
     ).setFontSize(18).setPadding(14, 9);
 
-    this.betButton = this.createButton(375, 495, "", () => this.cycleBet())
+    this.betButton = this.createButton(480, 495, "", () => this.startRound())
       .setFontSize(18)
       .setPadding(20, 9);
 
-    this.increaseBetButton = this.createButton(505, 495, "+10", () =>
+    this.increaseBetButton = this.createButton(610, 495, "+10", () =>
       this.adjustBet(BET_INCREMENT)
     ).setFontSize(18).setPadding(14, 9);
-
-    this.dealButton = this.createButton(640, 495, "DEAL", () => this.startRound())
-      .setFontSize(20)
-      .setPadding(20, 9);
 
     this.createButton(805, 495, "LOBBY", () => this.scene.start("LobbyScene"))
       .setFontSize(17)
@@ -113,12 +108,12 @@ export class TableScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-H", () => this.hit());
     this.input.keyboard?.on("keydown-S", () => this.stand());
     this.input.keyboard?.on("keydown-N", () => this.startRound());
-    this.input.keyboard?.on("keydown-B", () => this.cycleBet());
+    this.input.keyboard?.on("keydown-B", () => this.startRound());
     this.input.keyboard?.on("keydown-LEFT", () => this.adjustBet(-BET_INCREMENT));
     this.input.keyboard?.on("keydown-RIGHT", () => this.adjustBet(BET_INCREMENT));
 
     this.refreshBalances();
-    this.enterBettingState("Choose your bet, then deal.");
+    this.enterBettingState("Choose your bet, then press BET.");
   }
 
   private drawRoom(): void {
@@ -196,17 +191,6 @@ export class TableScene extends Phaser.Scene {
       MINIMUM_BET,
       maximumBet
     );
-    this.refreshBetControls();
-  }
-
-  private cycleBet(): void {
-    if (!this.roundFinished || this.chips < MINIMUM_BET) return;
-
-    const maximumBet = this.maximumAvailableBet();
-    this.selectedBet =
-      this.selectedBet >= maximumBet
-        ? MINIMUM_BET
-        : Math.min(this.selectedBet + BET_INCREMENT, maximumBet);
     this.refreshBetControls();
   }
 
@@ -317,8 +301,8 @@ export class TableScene extends Phaser.Scene {
       this.settlementPending = false;
       this.settlementFailed = true;
       this.statusText.setText("SAVE FAILED - PRESS N OR RETRY");
-      this.dealButton.setText("RETRY");
-      this.setButtonState(this.dealButton, true, true);
+      this.betButton.setText("RETRY");
+      this.setButtonState(this.betButton, true, true);
     }
   }
 
@@ -360,7 +344,6 @@ export class TableScene extends Phaser.Scene {
   private enterBettingState(message: string): void {
     this.activeWager = 0;
     this.settlementFailed = false;
-    this.dealButton.setText("DEAL");
     this.statusText.setText(message);
 
     const maximumBet = this.maximumAvailableBet();
@@ -381,8 +364,7 @@ export class TableScene extends Phaser.Scene {
     for (const button of [
       this.decreaseBetButton,
       this.betButton,
-      this.increaseBetButton,
-      this.dealButton
+      this.increaseBetButton
     ]) {
       this.setButtonState(button, false, false);
     }
@@ -398,8 +380,7 @@ export class TableScene extends Phaser.Scene {
       this.standButton,
       this.decreaseBetButton,
       this.betButton,
-      this.increaseBetButton,
-      this.dealButton
+      this.increaseBetButton
     ]) {
       this.setButtonState(button, false, false);
     }
@@ -424,7 +405,6 @@ export class TableScene extends Phaser.Scene {
       true,
       canBet && this.selectedBet < maximumBet
     );
-    this.setButtonState(this.dealButton, true, canBet);
   }
 
   private setButtonState(
