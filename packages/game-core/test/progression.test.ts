@@ -4,6 +4,7 @@ import {
   advanceHouseRuleAfterHand,
   advanceTrinketConveyor,
   isDuncanDialogueDue,
+  selectDialogueCandidate,
   startHouseRule
 } from "../src/index.js";
 import type { TrinketSlots } from "../src/index.js";
@@ -58,5 +59,26 @@ describe("Duncan dialogue timing", () => {
     expect(isDuncanDialogueDue(5)).toBe(true);
     expect(isDuncanDialogueDue(6)).toBe(false);
     expect(isDuncanDialogueDue(10)).toBe(true);
+  });
+
+  it("chance-filters conditional dialogue before weighted selection", () => {
+    const candidates = [
+      { id: "rare", chance: 0.25, weight: 10 },
+      { id: "fallback", chance: 1, weight: 1 }
+    ];
+    const rolls = [0.9, 0.2];
+
+    expect(
+      selectDialogueCandidate(candidates, () => rolls.shift() ?? 0)
+    ).toEqual(candidates[1]);
+  });
+
+  it("can return no dialogue when every conditional chance misses", () => {
+    expect(
+      selectDialogueCandidate(
+        [{ id: "conditional", chance: 0.25, weight: 1 }],
+        () => 0.9
+      )
+    ).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import {
   CARD_ASSETS,
   DEALER_ASSETS,
+  DUNCAN_VOICE_ASSETS,
   SCENE_ASSETS,
   TRINKET_ASSETS,
   UI_ASSETS
@@ -23,6 +24,10 @@ export class BootScene extends Phaser.Scene {
     this.load.image(CARD_ASSETS.back.key, CARD_ASSETS.back.url);
     this.load.image(UI_ASSETS.chip.key, UI_ASSETS.chip.url);
     this.load.image(UI_ASSETS.dunkaroo.key, UI_ASSETS.dunkaroo.url);
+
+    for (const voice of DUNCAN_VOICE_ASSETS) {
+      this.load.audio(voice.key, voice.url);
+    }
 
     if (SCENE_ASSETS.room.ready) {
       this.load.image(SCENE_ASSETS.room.key, SCENE_ASSETS.room.url);

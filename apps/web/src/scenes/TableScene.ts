@@ -16,6 +16,7 @@ import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
 import { GAME_FONT_FAMILY } from "../config/typography";
 import { settleCompletedHand } from "../api/gameApi";
+import { selectDuncanCycleDialogue } from "../dialogue/duncanDialogue";
 
 const MINIMUM_BET = 10;
 const BET_INCREMENT = 10;
@@ -45,6 +46,7 @@ export class TableScene extends Phaser.Scene {
   private roundFinished = true;
   private settlementPending = false;
   private settlementFailed = false;
+  private completedHands = 0;
 
   constructor() {
     super("TableScene");
@@ -271,7 +273,7 @@ export class TableScene extends Phaser.Scene {
       this.dealerHand,
       this.activeWager
     );
-    const presentation = this.describeResolution(resolution);
+    const resultMessage = `${this.describeResolution(resolution)} ${this.rewardText(resolution)}`;
 
     this.roundFinished = true;
     this.refreshHandText(true);
@@ -279,31 +281,44 @@ export class TableScene extends Phaser.Scene {
     this.settlementFailed = false;
     this.showSettlementPending();
 
+    let balances: { chips: number; dunkaroos: number };
     try {
-      const { balances } = await settleCompletedHand({
+      ({ balances } = await settleCompletedHand({
         handId: this.activeHandId,
         wager: resolution.wager,
         outcome: resolution.outcome
-      });
-
-      this.chips = balances.chips;
-      this.dunkaroos = balances.dunkaroos;
-      this.updateRegisteredUser();
-      this.refreshBalances();
-      this.settlementPending = false;
-      this.activeHandId = "";
-      this.enterBettingState(
-        `${presentation.message} ${this.rewardText(resolution)}`
-      );
-
-      void this.dealer.react(presentation.reaction);
+      }));
     } catch {
       this.settlementPending = false;
       this.settlementFailed = true;
       this.statusText.setText("SAVE FAILED - PRESS N OR RETRY");
       this.betButton.setText("RETRY");
       this.setButtonState(this.betButton, true, true);
+      return;
     }
+
+    this.chips = balances.chips;
+    this.dunkaroos = balances.dunkaroos;
+    this.completedHands += 1;
+    this.activeHandId = "";
+    this.updateRegisteredUser();
+    this.refreshBalances();
+    this.statusText.setText(resultMessage);
+
+    const dialogue = selectDuncanCycleDialogue({
+      completedHands: this.completedHands,
+      outcome: resolution.outcome,
+      playerBusted: calculateHandValue(this.playerHand).busted,
+      wager: resolution.wager,
+      chipProfit: resolution.chipProfit,
+      chips: this.chips,
+      dunkaroos: this.dunkaroos
+    });
+
+    if (dialogue) await this.dealer.speak(dialogue.text);
+
+    this.settlementPending = false;
+    this.enterBettingState(resultMessage);
   }
 
   private updateRegisteredUser(): void {
@@ -315,21 +330,18 @@ export class TableScene extends Phaser.Scene {
     });
   }
 
-  private describeResolution(resolution: HandResolution): {
-    message: string;
-    reaction: string;
-  } {
+  private describeResolution(resolution: HandResolution): string {
     switch (resolution.outcome) {
       case "player-blackjack":
-        return { message: "Blackjack!", reaction: "Now that's style." };
+        return "Blackjack!";
       case "player-win":
-        return { message: "You win!", reaction: "Well played." };
+        return "You win!";
       case "push":
-        return { message: "Push.", reaction: "A civilized tie." };
+        return "Push.";
       case "dealer-win":
         return calculateHandValue(this.playerHand).busted
-          ? { message: "You bust. The fox wins.", reaction: "A bold choice." }
-          : { message: "Dealer wins.", reaction: "The cards have spoken." };
+          ? "You bust. The fox wins."
+          : "Dealer wins.";
     }
   }
 

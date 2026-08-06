@@ -10,3 +10,4 @@ export * from "./uiAssets";
  * instead of embedding public paths.
  */
 export * from "./authAssets";
+export * from "./audioAssets";
