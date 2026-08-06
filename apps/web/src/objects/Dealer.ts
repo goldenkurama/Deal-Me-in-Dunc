@@ -3,19 +3,23 @@ import {
   DEALER_ASSETS,
   DEALER_IDLE_VARIATIONS,
   DUNCAN_VOICE_ASSETS,
+  GAME_SFX,
   type DealerIdleVariationName
 } from "../assets";
+import { AudioManager } from "../audio/AudioManager";
 import { GAME_FONT_FAMILY } from "../config/typography";
 
 export class Dealer extends Phaser.GameObjects.Sprite {
   private idleVariationTimer: Phaser.Time.TimerEvent | null = null;
   private lastIdleVariation: DealerIdleVariationName | null = null;
   private activeDialogueClose: (() => void) | null = null;
+  private readonly audio: AudioManager;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, DEALER_ASSETS.animations.idle.key, 0);
 
     scene.add.existing(this);
+    this.audio = new AudioManager(scene);
     this.setOrigin(0.5, 1);
     this.playIdle();
   }
@@ -200,6 +204,7 @@ export class Dealer extends Phaser.GameObjects.Sprite {
           revealAll();
           return;
         }
+        this.audio.playEffect(GAME_SFX.menuClick.key);
         close(choice);
       };
       const chooseYes = (): void => choose("yes");
@@ -250,8 +255,8 @@ export class Dealer extends Phaser.GameObjects.Sprite {
       return;
     }
 
-    this.scene.sound.play(voice.key, {
-      volume: 0.38,
+    this.audio.playEffect(voice.key, {
+      volumeMultiplier: 0.55,
       rate: Phaser.Math.FloatBetween(0.96, 1.04)
     });
   }

@@ -16,6 +16,8 @@ import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
 import { GAME_FONT_FAMILY } from "../config/typography";
 import { settleCompletedHand } from "../api/gameApi";
+import { GAME_MUSIC, GAME_SFX } from "../assets";
+import { AudioManager } from "../audio/AudioManager";
 import {
   selectDuncanCycleDialogue,
   type DuncanDialogueScript
@@ -26,6 +28,7 @@ const BET_INCREMENT = 10;
 
 export class TableScene extends Phaser.Scene {
   private dealer!: Dealer;
+  private audio!: AudioManager;
   private deck: Card[] = [];
   private playerHand: Card[] = [];
   private dealerHand: Card[] = [];
@@ -58,6 +61,8 @@ export class TableScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.audio = new AudioManager(this);
+    this.startSoundtrack();
     const user = this.registry.get("currentUser") as PublicUser;
     this.chips = user.chips;
     this.dunkaroos = user.dunkaroos;
@@ -100,7 +105,13 @@ export class TableScene extends Phaser.Scene {
       this.adjustBet(-BET_INCREMENT)
     ).setFontSize(18).setPadding(14, 9);
 
-    this.betButton = this.createButton(480, 495, "", () => this.startRound())
+    this.betButton = this.createButton(
+      480,
+      495,
+      "",
+      () => this.startRound(),
+      GAME_SFX.bet.key
+    )
       .setFontSize(18)
       .setPadding(20, 9);
 
@@ -121,6 +132,11 @@ export class TableScene extends Phaser.Scene {
 
     this.refreshBalances();
     this.enterBettingState("Choose your bet, then press BET.");
+  }
+
+  private startSoundtrack(): void {
+    this.audio.playLoop(GAME_MUSIC.solitaire.key);
+    this.audio.playLoop(GAME_MUSIC.rain.key, 0.2);
   }
 
   private drawRoom(): void {
@@ -165,7 +181,8 @@ export class TableScene extends Phaser.Scene {
     x: number,
     y: number,
     label: string,
-    onClick: () => void
+    onClick: () => void,
+    soundKey: string = GAME_SFX.menuClick.key
   ): Phaser.GameObjects.Text {
     const button = this.add
       .text(x, y, label, {
@@ -178,7 +195,10 @@ export class TableScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    button.on("pointerdown", onClick);
+    button.on("pointerdown", () => {
+      this.audio.playEffect(soundKey);
+      onClick();
+    });
     button.on("pointerover", () => button.setScale(1.04));
     button.on("pointerout", () => button.setScale(1));
 
@@ -315,6 +335,7 @@ export class TableScene extends Phaser.Scene {
     this.updateRegisteredUser();
     this.refreshBalances();
     this.statusText.setText(resultMessage);
+    this.playOutcomeSound(resolution);
 
     const dialogue = selectDuncanCycleDialogue({
       completedHands: this.completedHands,
@@ -374,6 +395,17 @@ export class TableScene extends Phaser.Scene {
     }
     if (resolution.outcome === "push") return "Your wager was returned.";
     return `You lost ${resolution.wager} chips.`;
+  }
+
+  private playOutcomeSound(resolution: HandResolution): void {
+    if (
+      resolution.outcome === "player-win" ||
+      resolution.outcome === "player-blackjack"
+    ) {
+      this.audio.playEffect(GAME_SFX.coin.key);
+    } else if (resolution.outcome === "dealer-win") {
+      this.audio.playEffect(GAME_SFX.bust.key);
+    }
   }
 
   private enterBettingState(message: string): void {

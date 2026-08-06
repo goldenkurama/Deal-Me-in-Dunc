@@ -3,6 +3,8 @@ import { ApiError, getCurrentUser, login, logout, register } from "./api/authApi
 import { renderAuthView, type AuthMode } from "./auth/AuthView";
 import { createGame } from "./game/createGame";
 import { GAME_FONT_NAME } from "./config/typography";
+import { GAME_SFX } from "./assets";
+import { AudioManager } from "./audio/AudioManager";
 import "./styles.css";
 
 const rootElement = document.querySelector<HTMLElement>("#app");
@@ -77,11 +79,11 @@ function showGame(user: PublicUser): void {
         <section class="audio-controls" aria-label="Audio controls">
           <label class="audio-control">
             <span>MUSIC</span>
-            <input type="range" min="0" max="100" value="70" aria-label="Music volume">
+            <input id="music-volume" type="range" min="0" max="100" value="35" aria-label="Music volume">
           </label>
           <label class="audio-control">
             <span>SFX</span>
-            <input type="range" min="0" max="100" value="70" aria-label="Sound effects volume">
+            <input id="sfx-volume" type="range" min="0" max="100" value="70" aria-label="Sound effects volume">
           </label>
         </section>
       </div>
@@ -91,10 +93,39 @@ function showGame(user: PublicUser): void {
   const gameRoot = root.querySelector<HTMLElement>("#game");
   const shopButton = root.querySelector<HTMLButtonElement>("#shop-button");
   const logoutButton = root.querySelector<HTMLButtonElement>("#logout-button");
+  const musicVolume = root.querySelector<HTMLInputElement>("#music-volume");
+  const effectsVolume = root.querySelector<HTMLInputElement>("#sfx-volume");
   if (!gameRoot) throw new Error("Missing game canvas root");
   if (!shopButton || !logoutButton) throw new Error("Missing game menu controls");
+  if (!musicVolume || !effectsVolume) {
+    throw new Error("Missing audio controls");
+  }
 
   game = createGame(gameRoot, user);
+  const audio = new AudioManager(game.scene.getScene("BootScene"));
+  const audioSettings = audio.getSettings();
+  musicVolume.value = String(Math.round(audioSettings.musicVolume * 100));
+  effectsVolume.value = String(Math.round(audioSettings.effectsVolume * 100));
+
+  musicVolume.addEventListener("input", () => {
+    audio.updateSettings({ musicVolume: Number(musicVolume.value) / 100 });
+  });
+  effectsVolume.addEventListener("input", () => {
+    audio.updateSettings({ effectsVolume: Number(effectsVolume.value) / 100 });
+  });
+
+  const playMenuClick = (): void => {
+    const activeScene = game?.scene.getScenes(true)[0];
+    if (activeScene) {
+      new AudioManager(activeScene).playEffect(GAME_SFX.menuClick.key);
+    }
+  };
+
+  for (const button of root.querySelectorAll<HTMLButtonElement>(
+    ".game-menu__button"
+  )) {
+    button.addEventListener("click", playMenuClick);
+  }
 
   shopButton.addEventListener("click", () => game?.scene.start("ShopScene"));
   logoutButton.addEventListener("click", () => {

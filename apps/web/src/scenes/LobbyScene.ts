@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { PublicUser } from "@fox-blackjack/shared-types";
-import { DEALER_ASSETS, SCENE_ASSETS } from "../assets";
+import { DEALER_ASSETS, GAME_MUSIC, GAME_SFX, SCENE_ASSETS } from "../assets";
+import { AudioManager } from "../audio/AudioManager";
 import { GAME_FONT_FAMILY } from "../config/typography";
 import { selectBeforePlayDialogue } from "../dialogue/duncanDialogue";
 import { Dealer } from "../objects/Dealer";
@@ -18,11 +19,15 @@ const COLORS = {
 } as const;
 
 export class LobbyScene extends Phaser.Scene {
+  private audio!: AudioManager;
+
   constructor() {
     super("LobbyScene");
   }
 
   create(): void {
+    this.audio = new AudioManager(this);
+    this.startSoundtrack();
     const user = this.registry.get("currentUser") as PublicUser;
     this.addRoom();
     this.drawHeader(user);
@@ -32,6 +37,11 @@ export class LobbyScene extends Phaser.Scene {
     this.createButton(480, 425, "PLAY", () => {
       void this.startTableAfterDialogue(dealer);
     }, true);
+  }
+
+  private startSoundtrack(): void {
+    this.audio.playLoop(GAME_MUSIC.solitaire.key);
+    this.audio.playLoop(GAME_MUSIC.rain.key, 0.2);
   }
 
   private async startTableAfterDialogue(dealer: Dealer): Promise<void> {
@@ -157,7 +167,10 @@ export class LobbyScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    button.on("pointerdown", onClick);
+    button.on("pointerdown", () => {
+      this.audio.playEffect(GAME_SFX.menuClick.key);
+      onClick();
+    });
     button.on("pointerover", () => button.setTint(0xfff1cf));
     button.on("pointerout", () => button.clearTint());
     return button;

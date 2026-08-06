@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import { GAME_SFX } from "../assets";
+import { AudioManager } from "../audio/AudioManager";
 import { GAME_FONT_FAMILY } from "../config/typography";
 
 export class ShopScene extends Phaser.Scene {
@@ -7,6 +9,7 @@ export class ShopScene extends Phaser.Scene {
   }
 
   create(): void {
+    const audio = new AudioManager(this);
     const graphics = this.add.graphics();
     graphics.fillStyle(0x241b14);
     graphics.fillRect(0, 0, 960, 540);
@@ -48,6 +51,9 @@ export class ShopScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    back.on("pointerdown", () => this.scene.start("LobbyScene"));
+    back.on("pointerdown", () => {
+      audio.playEffect(GAME_SFX.menuClick.key);
+      this.scene.start("LobbyScene");
+    });
   }
 }

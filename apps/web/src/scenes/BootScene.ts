@@ -3,6 +3,8 @@ import {
   CARD_ASSETS,
   DEALER_ASSETS,
   DUNCAN_VOICE_ASSETS,
+  GAME_MUSIC,
+  GAME_SFX,
   SCENE_ASSETS,
   TRINKET_ASSETS,
   UI_ASSETS
@@ -29,6 +31,14 @@ export class BootScene extends Phaser.Scene {
       this.load.audio(voice.key, voice.url);
     }
 
+    for (const effect of Object.values(GAME_SFX)) {
+      this.load.audio(effect.key, effect.url);
+    }
+
+    for (const track of Object.values(GAME_MUSIC)) {
+      this.load.audio(track.key, track.url);
+    }
+
     if (SCENE_ASSETS.room.ready) {
       this.load.image(SCENE_ASSETS.room.key, SCENE_ASSETS.room.url);
     }
@@ -42,8 +52,6 @@ export class BootScene extends Phaser.Scene {
       );
     }
 
-    // Add music later, after exporting an OGG or MP3 file:
-    // this.load.audio("table-theme", "/assets/audio/music/table-theme.ogg");
   }
 
   create(): void {
