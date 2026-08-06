@@ -36,6 +36,22 @@ export interface CurrencyBalances {
   readonly dunkaroos: number;
 }
 
+export type BlackjackOutcome =
+  | "player-blackjack"
+  | "player-win"
+  | "dealer-win"
+  | "push";
+
+export interface HandSettlementRequest {
+  readonly handId: string;
+  readonly wager: number;
+  readonly outcome: BlackjackOutcome;
+}
+
+export interface HandSettlementResponse {
+  readonly balances: CurrencyBalances;
+}
+
 /**
  * Cosmetic categories supported by the shop and equipment system.
  *

@@ -15,6 +15,7 @@ import {
 import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
 import { GAME_FONT_FAMILY } from "../config/typography";
+import { settleCompletedHand } from "../api/gameApi";
 
 const MINIMUM_BET = 10;
 const BET_INCREMENT = 10;
@@ -41,7 +42,10 @@ export class TableScene extends Phaser.Scene {
   private dunkaroos = 0;
   private selectedBet = MINIMUM_BET;
   private activeWager = 0;
+  private activeHandId = "";
   private roundFinished = true;
+  private settlementPending = false;
+  private settlementFailed = false;
 
   constructor() {
     super("TableScene");
@@ -207,6 +211,12 @@ export class TableScene extends Phaser.Scene {
   }
 
   private startRound(): void {
+    if (this.settlementFailed) {
+      void this.finishResolvedHand();
+      return;
+    }
+
+    if (this.settlementPending) return;
     if (!this.roundFinished) return;
 
     const maximumBet = this.maximumAvailableBet();
@@ -217,6 +227,7 @@ export class TableScene extends Phaser.Scene {
 
     this.selectedBet = Math.min(this.selectedBet, maximumBet);
     this.activeWager = this.selectedBet;
+    this.activeHandId = crypto.randomUUID();
     this.chips -= this.activeWager;
     this.roundFinished = false;
     this.refreshBalances();
@@ -236,7 +247,7 @@ export class TableScene extends Phaser.Scene {
       isNaturalBlackjack(this.playerHand) ||
       isNaturalBlackjack(this.dealerHand)
     ) {
-      this.finishResolvedHand();
+      void this.finishResolvedHand();
     }
   }
 
@@ -252,7 +263,7 @@ export class TableScene extends Phaser.Scene {
     this.playerHand.push(this.takeCard());
 
     if (calculateHandValue(this.playerHand).busted) {
-      this.finishResolvedHand();
+      void this.finishResolvedHand();
       return;
     }
 
@@ -265,10 +276,12 @@ export class TableScene extends Phaser.Scene {
     const dealerPlay = playDealerHand(this.dealerHand, this.deck);
     this.dealerHand = dealerPlay.dealerHand;
     this.deck = dealerPlay.remainingDeck;
-    this.finishResolvedHand();
+    void this.finishResolvedHand();
   }
 
-  private finishResolvedHand(): void {
+  private async finishResolvedHand(): Promise<void> {
+    if (this.settlementPending) return;
+
     const resolution = resolveHand(
       this.playerHand,
       this.dealerHand,
@@ -277,13 +290,45 @@ export class TableScene extends Phaser.Scene {
     const presentation = this.describeResolution(resolution);
 
     this.roundFinished = true;
-    this.chips += resolution.chipsReturned;
-    this.dunkaroos += resolution.dunkaroosAwarded;
-    this.refreshBalances();
     this.refreshHandText(true);
-    this.enterBettingState(`${presentation.message} ${this.rewardText(resolution)}`);
+    this.settlementPending = true;
+    this.settlementFailed = false;
+    this.showSettlementPending();
 
-    void this.dealer.react(presentation.reaction);
+    try {
+      const { balances } = await settleCompletedHand({
+        handId: this.activeHandId,
+        wager: resolution.wager,
+        outcome: resolution.outcome
+      });
+
+      this.chips = balances.chips;
+      this.dunkaroos = balances.dunkaroos;
+      this.updateRegisteredUser();
+      this.refreshBalances();
+      this.settlementPending = false;
+      this.activeHandId = "";
+      this.enterBettingState(
+        `${presentation.message} ${this.rewardText(resolution)}`
+      );
+
+      void this.dealer.react(presentation.reaction);
+    } catch {
+      this.settlementPending = false;
+      this.settlementFailed = true;
+      this.statusText.setText("SAVE FAILED - PRESS N OR RETRY");
+      this.dealButton.setText("RETRY");
+      this.setButtonState(this.dealButton, true, true);
+    }
+  }
+
+  private updateRegisteredUser(): void {
+    const user = this.registry.get("currentUser") as PublicUser;
+    this.registry.set("currentUser", {
+      ...user,
+      chips: this.chips,
+      dunkaroos: this.dunkaroos
+    });
   }
 
   private describeResolution(resolution: HandResolution): {
@@ -314,6 +359,8 @@ export class TableScene extends Phaser.Scene {
 
   private enterBettingState(message: string): void {
     this.activeWager = 0;
+    this.settlementFailed = false;
+    this.dealButton.setText("DEAL");
     this.statusText.setText(message);
 
     const maximumBet = this.maximumAvailableBet();
@@ -343,6 +390,21 @@ export class TableScene extends Phaser.Scene {
     this.setButtonState(this.hitButton, true, true);
     this.setButtonState(this.standButton, true, true);
     this.betText.setText(`BET: ${this.activeWager} CHIPS`);
+  }
+
+  private showSettlementPending(): void {
+    for (const button of [
+      this.hitButton,
+      this.standButton,
+      this.decreaseBetButton,
+      this.betButton,
+      this.increaseBetButton,
+      this.dealButton
+    ]) {
+      this.setButtonState(button, false, false);
+    }
+
+    this.statusText.setText("SAVING HAND...");
   }
 
   private refreshBetControls(): void {

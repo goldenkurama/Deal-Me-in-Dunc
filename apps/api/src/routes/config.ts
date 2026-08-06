@@ -8,7 +8,6 @@ configRouter.get("/", (_request, response) => {
   response.json({
     gameRules: {
       minimumBet: GAME_RULES.minimumBet,
-      maximumBet: GAME_RULES.maximumBet,
       betIncrement: GAME_RULES.betIncrement,
       dealerStandValue: GAME_RULES.dealerStandValue
     },

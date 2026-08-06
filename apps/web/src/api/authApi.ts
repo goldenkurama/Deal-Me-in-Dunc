@@ -16,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     credentials: "include",
     ...init,
@@ -40,7 +40,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function register(credentials: AuthCredentials): Promise<PublicUser> {
-  const response = await request<AuthResponse>("/api/auth/register", {
+  const response = await apiRequest<AuthResponse>("/api/auth/register", {
     method: "POST",
     body: JSON.stringify(credentials)
   });
@@ -48,7 +48,7 @@ export async function register(credentials: AuthCredentials): Promise<PublicUser
 }
 
 export async function login(credentials: AuthCredentials): Promise<PublicUser> {
-  const response = await request<AuthResponse>("/api/auth/login", {
+  const response = await apiRequest<AuthResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials)
   });
@@ -57,7 +57,7 @@ export async function login(credentials: AuthCredentials): Promise<PublicUser> {
 
 export async function getCurrentUser(): Promise<PublicUser | null> {
   try {
-    return (await request<AuthResponse>("/api/auth/me")).user;
+    return (await apiRequest<AuthResponse>("/api/auth/me")).user;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return null;
     throw error;
@@ -65,5 +65,5 @@ export async function getCurrentUser(): Promise<PublicUser | null> {
 }
 
 export async function logout(): Promise<void> {
-  await request<void>("/api/auth/logout", { method: "POST" });
+  await apiRequest<void>("/api/auth/logout", { method: "POST" });
 }

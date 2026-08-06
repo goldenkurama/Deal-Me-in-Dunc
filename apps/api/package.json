@@ -4,21 +4,24 @@
   "version": "0.2.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run build --workspace=@fox-blackjack/game-core",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm run build --workspace=@fox-blackjack/game-core",
     "test": "vitest run",
     "db:migrate": "tsx src/scripts/migrate.ts",
     "reset-password": "tsx src/scripts/resetPassword.ts"
   },
   "dependencies": {
+    "@fox-blackjack/game-core": "*",
+    "@fox-blackjack/shared-types": "*",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
-    "mysql2": "^3.14.0",
-    "@fox-blackjack/shared-types": "*"
+    "mysql2": "^3.14.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

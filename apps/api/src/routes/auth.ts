@@ -34,6 +34,10 @@ function readCookie(cookieHeader: string | undefined, name: string): string | nu
   return null;
 }
 
+export function readSessionToken(cookieHeader: string | undefined): string | null {
+  return readCookie(cookieHeader, SESSION_COOKIE_NAME);
+}
+
 function sessionCookie(token: string): string {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
   return `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}${secure}`;
@@ -90,7 +94,7 @@ export function createAuthRouter(authService: AuthService): Router {
 
   router.get("/me", async (request, response) => {
     try {
-      const token = readCookie(request.headers.cookie, SESSION_COOKIE_NAME);
+      const token = readSessionToken(request.headers.cookie);
       const user = token ? await authService.authenticate(token) : null;
 
       if (!user) {
@@ -109,7 +113,7 @@ export function createAuthRouter(authService: AuthService): Router {
 
   router.post("/logout", async (request, response) => {
     try {
-      const token = readCookie(request.headers.cookie, SESSION_COOKIE_NAME);
+      const token = readSessionToken(request.headers.cookie);
       if (token) await authService.logout(token);
 
       response.setHeader("Set-Cookie", expiredSessionCookie());
