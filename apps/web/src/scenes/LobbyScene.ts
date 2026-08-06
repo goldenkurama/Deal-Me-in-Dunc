@@ -34,19 +34,24 @@ export class LobbyScene extends Phaser.Scene {
     this.addTable();
     const dealer = this.addDealerPlaceholder();
 
-    this.createButton(480, 425, "PLAY", () => {
-      void this.startTableAfterDialogue(dealer);
-    }, true);
+    this.createButton(
+      480,
+      425,
+      "PLAY",
+      () => this.scene.start("TableScene"),
+      true
+    );
+
+    if (this.registry.get("lobbyGreetingShown") !== true) {
+      this.registry.set("lobbyGreetingShown", true);
+      void dealer.speak(selectBeforePlayDialogue());
+    }
   }
 
   private startSoundtrack(): void {
-    this.audio.playLoop(GAME_MUSIC.solitaire.key);
+    this.audio.stopLoop(GAME_MUSIC.breakbeatChips.key);
+    this.audio.playLoop(GAME_MUSIC.switchWithMe.key);
     this.audio.playLoop(GAME_MUSIC.rain.key, 0.2);
-  }
-
-  private async startTableAfterDialogue(dealer: Dealer): Promise<void> {
-    await dealer.speak(selectBeforePlayDialogue());
-    if (this.scene.isActive()) this.scene.start("TableScene");
   }
 
   private drawRoom(): void {

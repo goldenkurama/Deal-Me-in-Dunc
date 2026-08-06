@@ -107,4 +107,13 @@ export class AudioManager {
     sound.play();
     return sound;
   }
+
+  stopLoop(key: string): void {
+    const sound = this.scene.sound.get(key);
+    if (sound) {
+      sound.stop();
+      sound.destroy();
+    }
+    musicVolumeMultipliers.delete(key);
+  }
 }

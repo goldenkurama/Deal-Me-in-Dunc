@@ -135,7 +135,8 @@ export class TableScene extends Phaser.Scene {
   }
 
   private startSoundtrack(): void {
-    this.audio.playLoop(GAME_MUSIC.solitaire.key);
+    this.audio.stopLoop(GAME_MUSIC.switchWithMe.key);
+    this.audio.playLoop(GAME_MUSIC.breakbeatChips.key);
     this.audio.playLoop(GAME_MUSIC.rain.key, 0.2);
   }
 

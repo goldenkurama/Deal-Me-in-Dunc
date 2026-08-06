@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_SFX } from "../assets";
+import { GAME_MUSIC, GAME_SFX } from "../assets";
 import { AudioManager } from "../audio/AudioManager";
 import { GAME_FONT_FAMILY } from "../config/typography";
 
@@ -10,6 +10,9 @@ export class ShopScene extends Phaser.Scene {
 
   create(): void {
     const audio = new AudioManager(this);
+    audio.stopLoop(GAME_MUSIC.breakbeatChips.key);
+    audio.playLoop(GAME_MUSIC.switchWithMe.key);
+    audio.playLoop(GAME_MUSIC.rain.key, 0.2);
     const graphics = this.add.graphics();
     graphics.fillStyle(0x241b14);
     graphics.fillRect(0, 0, 960, 540);
