@@ -6,14 +6,18 @@ import {
   dealOpeningHands,
   drawCard,
   isNaturalBlackjack,
+  playDealerHand,
+  resolveHand,
   shuffleDeck,
-  type Card
+  type Card,
+  type HandResolution
 } from "@fox-blackjack/game-core";
 import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
 import { GAME_FONT_FAMILY } from "../config/typography";
 
-const WAGER = 10;
+const MINIMUM_BET = 10;
+const BET_INCREMENT = 10;
 
 export class TableScene extends Phaser.Scene {
   private dealer!: Dealer;
@@ -24,12 +28,19 @@ export class TableScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private handText!: Phaser.GameObjects.Text;
   private balancesText!: Phaser.GameObjects.Text;
+  private betText!: Phaser.GameObjects.Text;
   private hitButton!: Phaser.GameObjects.Text;
   private standButton!: Phaser.GameObjects.Text;
+  private decreaseBetButton!: Phaser.GameObjects.Text;
+  private betButton!: Phaser.GameObjects.Text;
+  private increaseBetButton!: Phaser.GameObjects.Text;
+  private dealButton!: Phaser.GameObjects.Text;
 
   // Hand results remain local until the transactional game API is implemented.
   private chips = 100;
   private dunkaroos = 0;
+  private selectedBet = MINIMUM_BET;
+  private activeWager = 0;
   private roundFinished = true;
 
   constructor() {
@@ -48,8 +59,9 @@ export class TableScene extends Phaser.Scene {
     this.statusText = this.add
       .text(480, 332, "", {
         fontFamily: GAME_FONT_FAMILY,
-        fontSize: "20px",
-        color: "#f6e8c8"
+        fontSize: "18px",
+        color: "#f6e8c8",
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -73,16 +85,36 @@ export class TableScene extends Phaser.Scene {
 
     this.hitButton = this.createButton(375, 495, "HIT", () => this.hit());
     this.standButton = this.createButton(585, 495, "STAND", () => this.stand());
-    this.createButton(750, 495, "LOBBY", () => this.scene.start("LobbyScene"))
+
+    this.decreaseBetButton = this.createButton(245, 495, "-10", () =>
+      this.adjustBet(-BET_INCREMENT)
+    ).setFontSize(18).setPadding(14, 9);
+
+    this.betButton = this.createButton(375, 495, "", () => this.cycleBet())
+      .setFontSize(18)
+      .setPadding(20, 9);
+
+    this.increaseBetButton = this.createButton(505, 495, "+10", () =>
+      this.adjustBet(BET_INCREMENT)
+    ).setFontSize(18).setPadding(14, 9);
+
+    this.dealButton = this.createButton(640, 495, "DEAL", () => this.startRound())
+      .setFontSize(20)
+      .setPadding(20, 9);
+
+    this.createButton(805, 495, "LOBBY", () => this.scene.start("LobbyScene"))
       .setFontSize(17)
       .setPadding(15, 9);
 
     this.input.keyboard?.on("keydown-H", () => this.hit());
     this.input.keyboard?.on("keydown-S", () => this.stand());
     this.input.keyboard?.on("keydown-N", () => this.startRound());
+    this.input.keyboard?.on("keydown-B", () => this.cycleBet());
+    this.input.keyboard?.on("keydown-LEFT", () => this.adjustBet(-BET_INCREMENT));
+    this.input.keyboard?.on("keydown-RIGHT", () => this.adjustBet(BET_INCREMENT));
 
     this.refreshBalances();
-    this.startRound();
+    this.enterBettingState("Choose your bet, then deal.");
   }
 
   private drawRoom(): void {
@@ -114,8 +146,8 @@ export class TableScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
-    this.add
-      .text(28, 55, `BET: ${WAGER} CHIPS`, {
+    this.betText = this.add
+      .text(28, 55, "", {
         fontFamily: GAME_FONT_FAMILY,
         fontSize: "16px",
         color: "#d9c9a5"
@@ -147,21 +179,48 @@ export class TableScene extends Phaser.Scene {
     return button;
   }
 
+  private maximumAvailableBet(): number {
+    return this.chips;
+  }
+
+  private adjustBet(change: number): void {
+    if (!this.roundFinished || this.chips < MINIMUM_BET) return;
+
+    const maximumBet = this.maximumAvailableBet();
+    this.selectedBet = Phaser.Math.Clamp(
+      this.selectedBet + change,
+      MINIMUM_BET,
+      maximumBet
+    );
+    this.refreshBetControls();
+  }
+
+  private cycleBet(): void {
+    if (!this.roundFinished || this.chips < MINIMUM_BET) return;
+
+    const maximumBet = this.maximumAvailableBet();
+    this.selectedBet =
+      this.selectedBet >= maximumBet
+        ? MINIMUM_BET
+        : Math.min(this.selectedBet + BET_INCREMENT, maximumBet);
+    this.refreshBetControls();
+  }
+
   private startRound(): void {
-    if (!this.roundFinished) {
+    if (!this.roundFinished) return;
+
+    const maximumBet = this.maximumAvailableBet();
+    if (maximumBet < MINIMUM_BET) {
+      this.enterBettingState("Not enough chips to place the minimum bet.");
       return;
     }
 
-    if (this.chips < WAGER) {
-      this.statusText.setText(
-        "Not enough chips to play. Come back after a reward."
-      );
-      this.setButtonsEnabled(false);
-      return;
-    }
-
-    this.chips -= WAGER;
+    this.selectedBet = Math.min(this.selectedBet, maximumBet);
+    this.activeWager = this.selectedBet;
+    this.chips -= this.activeWager;
+    this.roundFinished = false;
     this.refreshBalances();
+    this.showPlayingControls();
 
     const shuffledDeck = shuffleDeck(createDeck());
     const openingDeal = dealOpeningHands(shuffledDeck);
@@ -169,51 +228,16 @@ export class TableScene extends Phaser.Scene {
     this.playerHand = openingDeal.playerHand;
     this.dealerHand = openingDeal.dealerHand;
     this.deck = openingDeal.remainingDeck;
-    this.roundFinished = false;
 
-    this.statusText.setText("H = hit  •  S = stand");
-    this.setButtonsEnabled(true);
+    this.statusText.setText("H = HIT  /  S = STAND");
     this.refreshHandText(false);
 
     if (
       isNaturalBlackjack(this.playerHand) ||
       isNaturalBlackjack(this.dealerHand)
     ) {
-      this.resolveInitialBlackjacks();
+      this.finishResolvedHand();
     }
-  }
-
-  private resolveInitialBlackjacks(): void {
-    const playerBlackjack = isNaturalBlackjack(this.playerHand);
-    const dealerBlackjack = isNaturalBlackjack(this.dealerHand);
-
-    if (playerBlackjack && dealerBlackjack) {
-      this.finishRound(
-        "Push: both have blackjack.",
-        WAGER,
-        0,
-        "A dramatic tie."
-      );
-      return;
-    }
-
-    if (playerBlackjack) {
-      const profit = Math.ceil(WAGER * 1.5);
-      this.finishRound(
-        "Blackjack!",
-        WAGER + profit,
-        profit,
-        "Now that's style."
-      );
-      return;
-    }
-
-    this.finishRound(
-      "Dealer blackjack.",
-      0,
-      0,
-      "The cards have spoken."
-    );
   }
 
   private takeCard(): Card {
@@ -223,19 +247,12 @@ export class TableScene extends Phaser.Scene {
   }
 
   private hit(): void {
-    if (this.roundFinished) {
-      return;
-    }
+    if (this.roundFinished) return;
 
     this.playerHand.push(this.takeCard());
 
     if (calculateHandValue(this.playerHand).busted) {
-      this.finishRound(
-        "You bust. The fox wins.",
-        0,
-        0,
-        "A bold choice."
-      );
+      this.finishResolvedHand();
       return;
     }
 
@@ -243,61 +260,123 @@ export class TableScene extends Phaser.Scene {
   }
 
   private stand(): void {
-    if (this.roundFinished) {
-      return;
-    }
+    if (this.roundFinished) return;
 
-    while (calculateHandValue(this.dealerHand).total < 17) {
-      this.dealerHand.push(this.takeCard());
-    }
-
-    const playerTotal = calculateHandValue(this.playerHand).total;
-    const dealerValue = calculateHandValue(this.dealerHand);
-
-    if (dealerValue.busted || playerTotal > dealerValue.total) {
-      this.finishRound(
-        "You win!",
-        WAGER * 2,
-        WAGER,
-        "Well played."
-      );
-      return;
-    }
-
-    if (playerTotal === dealerValue.total) {
-      this.finishRound(
-        "Push.",
-        WAGER,
-        0,
-        "A civilized tie."
-      );
-      return;
-    }
-
-    this.finishRound(
-      "Dealer wins.",
-      0,
-      0,
-      "House manners."
-    );
+    const dealerPlay = playDealerHand(this.dealerHand, this.deck);
+    this.dealerHand = dealerPlay.dealerHand;
+    this.deck = dealerPlay.remainingDeck;
+    this.finishResolvedHand();
   }
 
-  private finishRound(
-    message: string,
-    chipsReturned: number,
-    profitDunkaroos: number,
-    reaction: string
-  ): void {
+  private finishResolvedHand(): void {
+    const resolution = resolveHand(
+      this.playerHand,
+      this.dealerHand,
+      this.activeWager
+    );
+    const presentation = this.describeResolution(resolution);
+
     this.roundFinished = true;
-    this.chips += chipsReturned;
-    this.dunkaroos += profitDunkaroos;
-
+    this.chips += resolution.chipsReturned;
+    this.dunkaroos += resolution.dunkaroosAwarded;
     this.refreshBalances();
-    this.statusText.setText(`${message} Press N for another round.`);
-    this.setButtonsEnabled(false);
     this.refreshHandText(true);
+    this.enterBettingState(`${presentation.message} ${this.rewardText(resolution)}`);
 
-    void this.dealer.react(reaction);
+    void this.dealer.react(presentation.reaction);
+  }
+
+  private describeResolution(resolution: HandResolution): {
+    message: string;
+    reaction: string;
+  } {
+    switch (resolution.outcome) {
+      case "player-blackjack":
+        return { message: "Blackjack!", reaction: "Now that's style." };
+      case "player-win":
+        return { message: "You win!", reaction: "Well played." };
+      case "push":
+        return { message: "Push.", reaction: "A civilized tie." };
+      case "dealer-win":
+        return calculateHandValue(this.playerHand).busted
+          ? { message: "You bust. The fox wins.", reaction: "A bold choice." }
+          : { message: "Dealer wins.", reaction: "The cards have spoken." };
+    }
+  }
+
+  private rewardText(resolution: HandResolution): string {
+    if (resolution.chipProfit > 0) {
+      return `+${resolution.chipProfit} chips / +${resolution.dunkaroosAwarded} dunkaroos.`;
+    }
+    if (resolution.outcome === "push") return "Your wager was returned.";
+    return `You lost ${resolution.wager} chips.`;
+  }
+
+  private enterBettingState(message: string): void {
+    this.activeWager = 0;
+    this.statusText.setText(message);
+
+    const maximumBet = this.maximumAvailableBet();
+    if (maximumBet >= MINIMUM_BET) {
+      this.selectedBet = Phaser.Math.Clamp(
+        this.selectedBet,
+        MINIMUM_BET,
+        maximumBet
+      );
+    }
+
+    this.setButtonState(this.hitButton, false, false);
+    this.setButtonState(this.standButton, false, false);
+    this.refreshBetControls();
+  }
+
+  private showPlayingControls(): void {
+    for (const button of [
+      this.decreaseBetButton,
+      this.betButton,
+      this.increaseBetButton,
+      this.dealButton
+    ]) {
+      this.setButtonState(button, false, false);
+    }
+
+    this.setButtonState(this.hitButton, true, true);
+    this.setButtonState(this.standButton, true, true);
+    this.betText.setText(`BET: ${this.activeWager} CHIPS`);
+  }
+
+  private refreshBetControls(): void {
+    const maximumBet = this.maximumAvailableBet();
+    const canBet = maximumBet >= MINIMUM_BET;
+
+    this.betText.setText(`BET: ${this.selectedBet} CHIPS`);
+    this.betButton.setText(`BET ${this.selectedBet}`);
+    this.setButtonState(
+      this.decreaseBetButton,
+      true,
+      canBet && this.selectedBet > MINIMUM_BET
+    );
+    this.setButtonState(this.betButton, true, canBet);
+    this.setButtonState(
+      this.increaseBetButton,
+      true,
+      canBet && this.selectedBet < maximumBet
+    );
+    this.setButtonState(this.dealButton, true, canBet);
+  }
+
+  private setButtonState(
+    button: Phaser.GameObjects.Text,
+    visible: boolean,
+    enabled: boolean
+  ): void {
+    button.setVisible(visible).setAlpha(enabled ? 1 : 0.45);
+
+    if (visible && enabled) {
+      button.setInteractive({ useHandCursor: true });
+    } else {
+      button.disableInteractive();
+    }
   }
 
   private refreshBalances(): void {
@@ -327,17 +406,5 @@ export class TableScene extends Phaser.Scene {
       `Dealer: ${dealerCards}${dealerTotal}\n\n` +
         `You: ${playerCards} (${playerTotal})`
     );
-  }
-
-  private setButtonsEnabled(enabled: boolean): void {
-    for (const button of [this.hitButton, this.standButton]) {
-      button.setAlpha(enabled ? 1 : 0.45);
-
-      if (enabled) {
-        button.setInteractive({ useHandCursor: true });
-      } else {
-        button.disableInteractive();
-      }
-    }
   }
 }

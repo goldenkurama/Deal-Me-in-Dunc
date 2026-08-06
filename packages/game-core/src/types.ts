@@ -48,6 +48,17 @@ export interface HandResolution {
   readonly dunkaroosAwarded: number;
 }
 
+/**
+ * Final payout values used to settle a hand. Trinkets may derive an adjusted
+ * copy, then an active House Rule can apply the final override before calling
+ * `resolveHand`.
+ */
+export interface HandPayoutRules {
+  readonly ordinaryWinProfitMultiplier: number;
+  readonly blackjackProfitMultiplier: number;
+  readonly dunkaroosPerPositiveChipProfit: number;
+}
+
 export interface ActiveTrinket {
   readonly id: string;
 }

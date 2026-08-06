@@ -1,5 +1,7 @@
 import type {
   Card,
+  HandOutcome,
+  HandPayoutRules,
   HandResolution,
   HandValue,
   Rank
@@ -82,17 +84,52 @@ function validateWager(wager: number): void {
   }
 }
 
-function createResolution(
-  outcome: HandResolution["outcome"],
+export const BASE_HAND_PAYOUT_RULES: HandPayoutRules = Object.freeze({
+  ordinaryWinProfitMultiplier: 1,
+  blackjackProfitMultiplier: 1.5,
+  dunkaroosPerPositiveChipProfit: 1
+});
+
+function validatePayoutRules(rules: HandPayoutRules): void {
+  for (const [name, value] of Object.entries(rules)) {
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(`${name} must be a non-negative finite number.`);
+    }
+  }
+}
+
+export function settleHandOutcome(
+  outcome: HandOutcome,
   wager: number,
-  chipProfit: number
+  rules: HandPayoutRules = BASE_HAND_PAYOUT_RULES
 ): HandResolution {
+  validateWager(wager);
+  validatePayoutRules(rules);
+
+  let chipProfit: number;
+  switch (outcome) {
+    case "player-blackjack":
+      chipProfit = Math.ceil(wager * rules.blackjackProfitMultiplier);
+      break;
+    case "player-win":
+      chipProfit = Math.ceil(wager * rules.ordinaryWinProfitMultiplier);
+      break;
+    case "push":
+      chipProfit = 0;
+      break;
+    case "dealer-win":
+      chipProfit = -wager;
+      break;
+  }
+
   return {
     outcome,
     wager,
     chipsReturned: wager + chipProfit,
     chipProfit,
-    dunkaroosAwarded: Math.max(0, chipProfit)
+    dunkaroosAwarded: Math.ceil(
+      Math.max(0, chipProfit) * rules.dunkaroosPerPositiveChipProfit
+    )
   };
 }
 
@@ -104,9 +141,11 @@ function createResolution(
 export function resolveHand(
   playerCards: readonly Card[],
   dealerCards: readonly Card[],
-  wager: number
+  wager: number,
+  rules: HandPayoutRules = BASE_HAND_PAYOUT_RULES
 ): HandResolution {
   validateWager(wager);
+  validatePayoutRules(rules);
 
   const playerValue = calculateHandValue(playerCards);
   const dealerValue = calculateHandValue(dealerCards);
@@ -114,28 +153,28 @@ export function resolveHand(
   const dealerBlackjack = isNaturalBlackjack(dealerCards);
 
   if (playerValue.busted) {
-    return createResolution("dealer-win", wager, -wager);
+    return settleHandOutcome("dealer-win", wager, rules);
   }
 
   if (playerBlackjack && dealerBlackjack) {
-    return createResolution("push", wager, 0);
+    return settleHandOutcome("push", wager, rules);
   }
 
   if (playerBlackjack) {
-    return createResolution("player-blackjack", wager, Math.ceil(wager * 1.5));
+    return settleHandOutcome("player-blackjack", wager, rules);
   }
 
   if (dealerBlackjack) {
-    return createResolution("dealer-win", wager, -wager);
+    return settleHandOutcome("dealer-win", wager, rules);
   }
 
   if (dealerValue.busted || playerValue.total > dealerValue.total) {
-    return createResolution("player-win", wager, wager);
+    return settleHandOutcome("player-win", wager, rules);
   }
 
   if (playerValue.total < dealerValue.total) {
-    return createResolution("dealer-win", wager, -wager);
+    return settleHandOutcome("dealer-win", wager, rules);
   }
 
-  return createResolution("push", wager, 0);
+  return settleHandOutcome("push", wager, rules);
 }

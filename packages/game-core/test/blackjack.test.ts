@@ -4,7 +4,8 @@ import {
   createDeck,
   dealerShouldHit,
   isNaturalBlackjack,
-  resolveHand
+  resolveHand,
+  settleHandOutcome
 } from "../src/index.js";
 import type { Card, Rank, Suit } from "../src/index.js";
 
@@ -83,6 +84,22 @@ describe("hand resolution", () => {
       chipsReturned: 10,
       chipProfit: 0,
       dunkaroosAwarded: 0
+    });
+  });
+
+  it("accepts final payout rules for future trinket and House Rule modifiers", () => {
+    expect(
+      settleHandOutcome("player-win", 10, {
+        ordinaryWinProfitMultiplier: 2,
+        blackjackProfitMultiplier: 2.5,
+        dunkaroosPerPositiveChipProfit: 1.5
+      })
+    ).toEqual({
+      outcome: "player-win",
+      wager: 10,
+      chipsReturned: 30,
+      chipProfit: 20,
+      dunkaroosAwarded: 30
     });
   });
 });
