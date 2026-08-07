@@ -132,7 +132,10 @@ function showGame(user: PublicUser): void {
     button.addEventListener("click", playMenuClick);
   }
 
-  shopButton.addEventListener("click", () => game?.scene.start("ShopScene"));
+  shopButton.addEventListener("click", () => {
+    const activeScene = game?.scene.getScenes(true)[0];
+    activeScene?.scene.start("ShopScene");
+  });
   logoutButton.addEventListener("click", () => {
     void (async () => {
       await logout().catch(() => undefined);
