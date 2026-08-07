@@ -36,13 +36,17 @@ function loadSettings(): AudioSettings {
   return sharedSettings ?? { ...DEFAULT_SETTINGS };
 }
 
+export function getAudioSettings(): AudioSettings {
+  return { ...loadSettings() };
+}
+
 export class AudioManager {
   constructor(private readonly scene: Phaser.Scene) {
     this.scene.sound.mute = loadSettings().muted;
   }
 
   getSettings(): AudioSettings {
-    return { ...loadSettings() };
+    return getAudioSettings();
   }
 
   updateSettings(next: Partial<AudioSettings>): void {

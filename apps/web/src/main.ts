@@ -4,7 +4,7 @@ import { renderAuthView, type AuthMode } from "./auth/AuthView";
 import { createGame } from "./game/createGame";
 import { GAME_FONT_NAME } from "./config/typography";
 import { GAME_SFX } from "./assets";
-import { AudioManager } from "./audio/AudioManager";
+import { AudioManager, getAudioSettings } from "./audio/AudioManager";
 import "./styles.css";
 
 const rootElement = document.querySelector<HTMLElement>("#app");
@@ -102,23 +102,28 @@ function showGame(user: PublicUser): void {
   }
 
   game = createGame(gameRoot, user);
-  const audio = new AudioManager(game.scene.getScene("BootScene"));
-  const audioSettings = audio.getSettings();
+  const audioSettings = getAudioSettings();
   musicVolume.value = String(Math.round(audioSettings.musicVolume * 100));
   effectsVolume.value = String(Math.round(audioSettings.effectsVolume * 100));
 
+  const getActiveAudio = (): AudioManager | null => {
+    const activeScene = game?.scene.getScenes(true)[0];
+    return activeScene ? new AudioManager(activeScene) : null;
+  };
+
   musicVolume.addEventListener("input", () => {
-    audio.updateSettings({ musicVolume: Number(musicVolume.value) / 100 });
+    getActiveAudio()?.updateSettings({
+      musicVolume: Number(musicVolume.value) / 100
+    });
   });
   effectsVolume.addEventListener("input", () => {
-    audio.updateSettings({ effectsVolume: Number(effectsVolume.value) / 100 });
+    getActiveAudio()?.updateSettings({
+      effectsVolume: Number(effectsVolume.value) / 100
+    });
   });
 
   const playMenuClick = (): void => {
-    const activeScene = game?.scene.getScenes(true)[0];
-    if (activeScene) {
-      new AudioManager(activeScene).playEffect(GAME_SFX.menuClick.key);
-    }
+    getActiveAudio()?.playEffect(GAME_SFX.menuClick.key);
   };
 
   for (const button of root.querySelectorAll<HTMLButtonElement>(
