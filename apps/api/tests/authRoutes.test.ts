@@ -5,6 +5,7 @@ import type { PublicUser } from "@fox-blackjack/shared-types";
 import { createApp } from "../src/app.js";
 import { AuthError, type AuthService } from "../src/services/authService.js";
 import type { GameService } from "../src/services/gameService.js";
+import type { ShopService } from "../src/services/shopServiceContract.js";
 
 const user: PublicUser = {
   id: "7",
@@ -26,11 +27,18 @@ function fakeAuthService(overrides: Partial<AuthService> = {}): AuthService {
 const gameService: GameService = {
   settleHand: vi.fn(async () => ({ balances: { chips: 100, dunkaroos: 0 } }))
 };
+const shopService: ShopService = {
+  listItems: () => ({ items: [] }),
+  purchaseItem: vi.fn()
+};
 
 const servers: Server[] = [];
 
 async function startApi(authService: AuthService): Promise<string> {
-  const server = createApp(authService, gameService).listen(0, "127.0.0.1");
+  const server = createApp(authService, gameService, shopService).listen(
+    0,
+    "127.0.0.1"
+  );
   servers.push(server);
 
   await new Promise<void>((resolve) => server.once("listening", resolve));

@@ -1,14 +1,25 @@
 import type { ShopCategory } from "@fox-blackjack/shared-types";
 
-export interface ShopItem {
+interface ShopItemBase {
   key: string;
   name: string;
   description: string;
-  category: ShopCategory;
   priceDunkaroos: number;
+}
+
+export interface CosmeticShopItem extends ShopItemBase {
+  kind: "cosmetic";
+  category: ShopCategory;
   assetKey: string;
   previewAssetKey?: string;
 }
+
+export interface ChipBundleShopItem extends ShopItemBase {
+  kind: "chip_bundle";
+  chipsAwarded: number;
+}
+
+export type ShopItem = CosmeticShopItem | ChipBundleShopItem;
 
 /**
  * Add permanent shop definitions here.
@@ -19,15 +30,14 @@ export interface ShopItem {
  * and equipped records refer to it.
  */
 export const SHOP_ITEMS: readonly ShopItem[] = [
-  // Example shape only; replace with real items when their art and prices exist.
-  // {
-  //   key: "card_back_example",
-  //   name: "Example Card Back",
-  //   description: "Replace this example with real content.",
-  //   category: "card_back",
-  //   priceDunkaroos: 250,
-  //   assetKey: "card-backs/example"
-  // }
+  {
+    kind: "chip_bundle",
+    key: "chips_10",
+    name: "10 CHIPS",
+    description: "Trade 10 dunkaroos for 10 chips.",
+    priceDunkaroos: 10,
+    chipsAwarded: 10
+  }
 ];
 
 export function getShopItem(itemKey: string): ShopItem | undefined {

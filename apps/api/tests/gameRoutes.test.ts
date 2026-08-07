@@ -5,6 +5,7 @@ import type { PublicUser } from "@fox-blackjack/shared-types";
 import { createApp } from "../src/app.js";
 import type { AuthService } from "../src/services/authService.js";
 import type { GameService } from "../src/services/gameService.js";
+import type { ShopService } from "../src/services/shopServiceContract.js";
 
 const user: PublicUser = {
   id: "7",
@@ -23,12 +24,19 @@ function fakeAuthService(authenticatedUser: PublicUser | null): AuthService {
 }
 
 const servers: Server[] = [];
+const shopService: ShopService = {
+  listItems: () => ({ items: [] }),
+  purchaseItem: vi.fn()
+};
 
 async function startApi(
   authService: AuthService,
   gameService: GameService
 ): Promise<string> {
-  const server = createApp(authService, gameService).listen(0, "127.0.0.1");
+  const server = createApp(authService, gameService, shopService).listen(
+    0,
+    "127.0.0.1"
+  );
   servers.push(server);
   await new Promise<void>((resolve) => server.once("listening", resolve));
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

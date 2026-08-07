@@ -52,6 +52,26 @@ export interface HandSettlementResponse {
   readonly balances: CurrencyBalances;
 }
 
+export interface ShopItemSummary {
+  readonly key: string;
+  readonly name: string;
+  readonly description: string;
+  readonly priceDunkaroos: number;
+}
+
+export interface ShopCatalogResponse {
+  readonly items: readonly ShopItemSummary[];
+}
+
+export interface ShopPurchaseRequest {
+  readonly itemKey: string;
+}
+
+export interface ShopPurchaseResponse {
+  readonly itemKey: string;
+  readonly balances: CurrencyBalances;
+}
+
 /**
  * Cosmetic categories supported by the shop and equipment system.
  *

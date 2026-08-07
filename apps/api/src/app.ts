@@ -2,14 +2,17 @@ import cors from "cors";
 import express, { type Express } from "express";
 import type { AuthService } from "./services/authService.js";
 import type { GameService } from "./services/gameService.js";
+import type { ShopService } from "./services/shopServiceContract.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createGameRouter } from "./routes/game.js";
 import { configRouter } from "./routes/config.js";
 import { healthRouter } from "./routes/health.js";
+import { createShopRouter } from "./routes/shop.js";
 
 export function createApp(
   authService: AuthService,
-  gameService: GameService
+  gameService: GameService,
+  shopService: ShopService
 ): Express {
   const app = express();
   const clientOrigin = process.env.CLIENT_ORIGIN ?? "http://localhost:5173";
@@ -21,6 +24,7 @@ export function createApp(
   app.use("/api/config", configRouter);
   app.use("/api/auth", createAuthRouter(authService));
   app.use("/api/game", createGameRouter(authService, gameService));
+  app.use("/api/shop", createShopRouter(authService, shopService));
 
   app.use((_request, response) => {
     response.status(404).json({ error: "not_found", message: "Not found" });
