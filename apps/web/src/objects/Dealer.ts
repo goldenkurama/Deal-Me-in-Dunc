@@ -9,6 +9,16 @@ import {
 import { AudioManager } from "../audio/AudioManager";
 import { GAME_FONT_FAMILY } from "../config/typography";
 
+interface DialogueChoice {
+  readonly value: string;
+  readonly label: string;
+}
+
+type DialogueInteraction =
+  | { readonly kind: "continue" }
+  | { readonly kind: "choices"; readonly options: readonly DialogueChoice[] }
+  | { readonly kind: "text" };
+
 export class Dealer extends Phaser.GameObjects.Sprite {
   private idleVariationTimer: Phaser.Time.TimerEvent | null = null;
   private lastIdleVariation: DealerIdleVariationName | null = null;
@@ -73,20 +83,35 @@ export class Dealer extends Phaser.GameObjects.Sprite {
   }
 
   async speak(message: string): Promise<void> {
-    await this.presentDialogue(message, false);
+    await this.presentDialogue(message, { kind: "continue" });
   }
 
-  askYesNo(message: string): Promise<"yes" | "no" | null> {
-    return this.presentDialogue(message, true);
+  async askYesNo(message: string): Promise<"yes" | "no" | null> {
+    const choice = await this.askChoice(message, [
+      { value: "yes", label: "YES" },
+      { value: "no", label: "NO" }
+    ]);
+    return choice === "yes" || choice === "no" ? choice : null;
+  }
+
+  askChoice(
+    message: string,
+    options: readonly DialogueChoice[]
+  ): Promise<string | null> {
+    return this.presentDialogue(message, { kind: "choices", options });
+  }
+
+  askText(message: string): Promise<string | null> {
+    return this.presentDialogue(message, { kind: "text" });
   }
 
   private presentDialogue(
     message: string,
-    asksYesNo: boolean
-  ): Promise<"yes" | "no" | null> {
+    interaction: DialogueInteraction
+  ): Promise<string | null> {
     this.activeDialogueClose?.();
 
-    return new Promise<"yes" | "no" | null>((resolve) => {
+    return new Promise<string | null>((resolve) => {
       const blocker = this.scene.add
         .rectangle(0, 0, 960, 540, 0x000000, 0.001)
         .setOrigin(0)
@@ -124,18 +149,44 @@ export class Dealer extends Phaser.GameObjects.Sprite {
 
       const choiceStyle: Phaser.Types.GameObjects.Text.TextStyle = {
         fontFamily: GAME_FONT_FAMILY,
-        fontSize: "16px",
+        fontSize:
+          interaction.kind === "choices" && interaction.options.length > 2
+            ? "13px"
+            : "16px",
         color: "#f6e8c8",
         backgroundColor: "#5b3b28",
-        padding: { x: 15, y: 6 }
+        padding: { x: 10, y: 6 }
       };
-      const yesChoice = this.scene.add
-        .text(700, 474, "YES", choiceStyle)
-        .setOrigin(0.5)
-        .setVisible(false)
-        .disableInteractive();
-      const noChoice = this.scene.add
-        .text(792, 474, "NO", choiceStyle)
+      const choiceObjects =
+        interaction.kind === "choices"
+          ? interaction.options.map((option, index) =>
+              this.scene.add
+                .text(
+                  110 + (740 / interaction.options.length) * (index + 0.5),
+                  482,
+                  option.label,
+                  choiceStyle
+                )
+                .setOrigin(0.5)
+                .setVisible(false)
+                .disableInteractive()
+            )
+          : [];
+
+      const inputBackground = this.scene.add
+        .rectangle(114, 462, 570, 38, 0xfff8e8)
+        .setOrigin(0)
+        .setStrokeStyle(3, 0x5b3b28)
+        .setVisible(false);
+      const inputText = this.scene.add
+        .text(126, 470, "TYPE ANSWER…", {
+          fontFamily: GAME_FONT_FAMILY,
+          fontSize: "17px",
+          color: "#8d6840"
+        })
+        .setVisible(false);
+      const submitChoice = this.scene.add
+        .text(782, 481, "SUBMIT", choiceStyle)
         .setOrigin(0.5)
         .setVisible(false)
         .disableInteractive();
@@ -147,8 +198,10 @@ export class Dealer extends Phaser.GameObjects.Sprite {
           speaker,
           speech,
           continueText,
-          yesChoice,
-          noChoice
+          ...choiceObjects,
+          inputBackground,
+          inputText,
+          submitChoice
         ])
         .setDepth(2000);
 
@@ -156,6 +209,7 @@ export class Dealer extends Phaser.GameObjects.Sprite {
       let spokenCharacters = 0;
       let fullyRevealed = false;
       let closed = false;
+      let typedValue = "";
       let revealTimer: Phaser.Time.TimerEvent | null = null;
 
       const revealAll = (): void => {
@@ -163,43 +217,53 @@ export class Dealer extends Phaser.GameObjects.Sprite {
         revealTimer = null;
         speech.setText(message);
         fullyRevealed = true;
-        if (asksYesNo) {
-          yesChoice.setVisible(true).setInteractive({ useHandCursor: true });
-          noChoice.setVisible(true).setInteractive({ useHandCursor: true });
+        if (interaction.kind === "choices") {
+          for (const choice of choiceObjects) {
+            choice.setVisible(true).setInteractive({ useHandCursor: true });
+          }
+        } else if (interaction.kind === "text") {
+          inputBackground.setVisible(true);
+          inputText.setVisible(true);
+          submitChoice
+            .setVisible(true)
+            .setInteractive({ useHandCursor: true });
         } else {
           continueText.setVisible(true);
         }
       };
 
-      const close = (choice: "yes" | "no" | null = null): void => {
+      const close = (result: string | null = null): void => {
         if (closed) return;
         closed = true;
         revealTimer?.remove(false);
         blocker.off("pointerdown", advance);
-        yesChoice.off("pointerdown", chooseYes);
-        noChoice.off("pointerdown", chooseNo);
+        choiceObjects.forEach((choice, index) => {
+          choice.off("pointerdown", choiceHandlers[index]);
+        });
+        submitChoice.off("pointerdown", submitText);
         this.scene.input.keyboard?.off("keydown-SPACE", advance);
         this.scene.input.keyboard?.off("keydown-ENTER", advance);
         this.scene.input.keyboard?.off("keydown-E", advance);
         this.scene.input.keyboard?.off("keydown-Y", chooseYes);
         this.scene.input.keyboard?.off("keydown-N", chooseNo);
+        this.scene.input.keyboard?.off("keydown", handleTextKey);
         this.scene.events.off(Phaser.Scenes.Events.SHUTDOWN, handleShutdown);
         dialogue.destroy(true);
         if (this.activeDialogueClose === closeActiveDialogue) {
           this.activeDialogueClose = null;
         }
-        resolve(choice);
+        resolve(result);
       };
 
       const advance = (): void => {
-        if (fullyRevealed && !asksYesNo) {
+        if (fullyRevealed && interaction.kind === "continue") {
           close();
         } else if (!fullyRevealed) {
           revealAll();
         }
       };
 
-      const choose = (choice: "yes" | "no"): void => {
+      const choose = (choice: string): void => {
         if (!fullyRevealed) {
           revealAll();
           return;
@@ -209,18 +273,77 @@ export class Dealer extends Phaser.GameObjects.Sprite {
       };
       const chooseYes = (): void => choose("yes");
       const chooseNo = (): void => choose("no");
+      const choiceHandlers =
+        interaction.kind === "choices"
+          ? interaction.options.map(({ value }) => () => choose(value))
+          : [];
+
+      const refreshInputText = (): void => {
+        inputText
+          .setText(typedValue || "TYPE ANSWER…")
+          .setColor(typedValue ? "#2a1b13" : "#8d6840");
+      };
+      const submitText = (): void => {
+        if (!fullyRevealed) {
+          revealAll();
+          return;
+        }
+        if (!typedValue.trim()) return;
+        this.audio.playEffect(GAME_SFX.menuClick.key);
+        close(typedValue);
+      };
+      const handleTextKey = (event: KeyboardEvent): void => {
+        if (interaction.kind !== "text") return;
+        if (!fullyRevealed) {
+          if (event.key === "Enter") revealAll();
+          return;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          submitText();
+        } else if (event.key === "Backspace") {
+          event.preventDefault();
+          typedValue = typedValue.slice(0, -1);
+          refreshInputText();
+        } else if (
+          event.key.length === 1 &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          typedValue.length < 32
+        ) {
+          typedValue += event.key;
+          refreshInputText();
+        }
+      };
       const handleShutdown = (): void => close(null);
       const closeActiveDialogue = (): void => close(null);
 
       this.activeDialogueClose = closeActiveDialogue;
       blocker.on("pointerdown", advance);
-      yesChoice.on("pointerdown", chooseYes);
-      noChoice.on("pointerdown", chooseNo);
+      choiceObjects.forEach((choice, index) => {
+        choice.on("pointerdown", choiceHandlers[index]);
+      });
+      submitChoice.on("pointerdown", submitText);
       this.scene.input.keyboard?.on("keydown-SPACE", advance);
-      this.scene.input.keyboard?.on("keydown-ENTER", advance);
+      if (interaction.kind !== "text") {
+        this.scene.input.keyboard?.on("keydown-ENTER", advance);
+      }
       this.scene.input.keyboard?.on("keydown-E", advance);
-      this.scene.input.keyboard?.on("keydown-Y", chooseYes);
-      this.scene.input.keyboard?.on("keydown-N", chooseNo);
+      if (
+        interaction.kind === "choices" &&
+        interaction.options.some(({ value }) => value === "yes")
+      ) {
+        this.scene.input.keyboard?.on("keydown-Y", chooseYes);
+      }
+      if (
+        interaction.kind === "choices" &&
+        interaction.options.some(({ value }) => value === "no")
+      ) {
+        this.scene.input.keyboard?.on("keydown-N", chooseNo);
+      }
+      this.scene.input.keyboard?.on("keydown", handleTextKey);
       this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, handleShutdown);
 
       revealTimer = this.scene.time.addEvent({

@@ -359,10 +359,35 @@ export class TableScene extends Phaser.Scene {
       return;
     }
 
-    const choice = await this.dealer.askYesNo(script.prompt);
-    if (!choice) return;
+    if (script.kind === "yes-no") {
+      for (const line of script.intro ?? []) await this.dealer.speak(line);
 
-    const response = choice === "yes" ? script.yes : script.no;
+      const choice = await this.dealer.askYesNo(script.prompt);
+      if (!choice) return;
+
+      const response = choice === "yes" ? script.yes : script.no;
+      for (const line of response) await this.dealer.speak(line);
+      return;
+    }
+
+    if (script.kind === "choice") {
+      const selected = await this.dealer.askChoice(
+        script.prompt,
+        script.options.map(({ value, label }) => ({ value, label }))
+      );
+      if (!selected) return;
+
+      const response = script.options.find(
+        ({ value }) => value === selected
+      )?.response;
+      for (const line of response ?? []) await this.dealer.speak(line);
+      return;
+    }
+
+    const answer = await this.dealer.askText(script.prompt);
+    if (answer === null) return;
+
+    const response = script.responses[answer.trim()] ?? script.otherwise;
     for (const line of response) await this.dealer.speak(line);
   }
 
