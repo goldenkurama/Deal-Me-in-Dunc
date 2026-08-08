@@ -23,7 +23,14 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    this.load.image(CARD_ASSETS.back.key, CARD_ASSETS.back.url);
+    this.load.spritesheet(CARD_ASSETS.faces.key, CARD_ASSETS.faces.url, {
+      frameWidth: CARD_ASSETS.faces.frameWidth,
+      frameHeight: CARD_ASSETS.faces.frameHeight
+    });
+    this.load.spritesheet(CARD_ASSETS.backs.key, CARD_ASSETS.backs.url, {
+      frameWidth: CARD_ASSETS.backs.frameWidth,
+      frameHeight: CARD_ASSETS.backs.frameHeight
+    });
     this.load.image(UI_ASSETS.chip.key, UI_ASSETS.chip.url);
     this.load.image(UI_ASSETS.dunkaroo.key, UI_ASSETS.dunkaroo.url);
 
@@ -55,6 +62,13 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.textures
+      .get(CARD_ASSETS.faces.key)
+      .setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures
+      .get(CARD_ASSETS.backs.key)
+      .setFilter(Phaser.Textures.FilterMode.NEAREST);
+
     for (const animation of Object.values(DEALER_ASSETS.animations)) {
       const baseFrameDuration = Math.min(...animation.frameDurationsMs);
       this.anims.create({

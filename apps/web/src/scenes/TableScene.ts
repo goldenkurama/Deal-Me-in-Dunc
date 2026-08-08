@@ -16,7 +16,13 @@ import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
 import { GAME_FONT_FAMILY } from "../config/typography";
 import { settleCompletedHand } from "../api/gameApi";
-import { GAME_MUSIC, GAME_SFX } from "../assets";
+import {
+  CARD_ASSETS,
+  CARD_WIDTH,
+  GAME_MUSIC,
+  GAME_SFX,
+  cardFaceFrame
+} from "../assets";
 import { AudioManager } from "../audio/AudioManager";
 import {
   selectDuncanCycleDialogue,
@@ -34,7 +40,9 @@ export class TableScene extends Phaser.Scene {
   private dealerHand: Card[] = [];
 
   private statusText!: Phaser.GameObjects.Text;
-  private handText!: Phaser.GameObjects.Text;
+  private dealerTotalText!: Phaser.GameObjects.Text;
+  private playerTotalText!: Phaser.GameObjects.Text;
+  private renderedCards: Phaser.GameObjects.Image[] = [];
   private balancesText!: Phaser.GameObjects.Text;
   private betText!: Phaser.GameObjects.Text;
   private hitButton!: Phaser.GameObjects.Text;
@@ -72,20 +80,27 @@ export class TableScene extends Phaser.Scene {
     new TrinketConveyor(this, 16, 170);
 
     this.statusText = this.add
-      .text(480, 332, "", {
+      .text(480, 98, "", {
         fontFamily: GAME_FONT_FAMILY,
-        fontSize: "18px",
+        fontSize: "16px",
         color: "#f6e8c8",
         align: "center"
       })
       .setOrigin(0.5);
 
-    this.handText = this.add
-      .text(480, 405, "", {
+    this.dealerTotalText = this.add
+      .text(750, 337, "", {
         fontFamily: GAME_FONT_FAMILY,
-        fontSize: "22px",
-        color: "#ffffff",
-        align: "center"
+        fontSize: "15px",
+        color: "#d9c9a5"
+      })
+      .setOrigin(0.5);
+
+    this.playerTotalText = this.add
+      .text(750, 426, "", {
+        fontFamily: GAME_FONT_FAMILY,
+        fontSize: "15px",
+        color: "#f6e8c8"
       })
       .setOrigin(0.5);
 
@@ -521,25 +536,47 @@ export class TableScene extends Phaser.Scene {
   }
 
   private refreshHandText(showDealerHoleCard: boolean): void {
-    const playerCards = this.playerHand
-      .map((card) => `${card.rank}${card.suit}`)
-      .join("  ");
+    for (const card of this.renderedCards) card.destroy();
+    this.renderedCards = [];
 
-    const dealerCards = showDealerHoleCard
-      ? this.dealerHand
-          .map((card) => `${card.rank}${card.suit}`)
-          .join("  ")
-      : `${this.dealerHand[0]?.rank}${this.dealerHand[0]?.suit}  ??`;
+    this.renderHand(this.dealerHand, 337, !showDealerHoleCard);
+    this.renderHand(this.playerHand, 426, false);
 
-    const dealerTotal = showDealerHoleCard
-      ? ` (${calculateHandValue(this.dealerHand).total})`
-      : "";
-
-    const playerTotal = calculateHandValue(this.playerHand).total;
-
-    this.handText.setText(
-      `Dealer: ${dealerCards}${dealerTotal}\n\n` +
-        `You: ${playerCards} (${playerTotal})`
+    this.dealerTotalText.setText(
+      showDealerHoleCard
+        ? `DEALER  ${calculateHandValue(this.dealerHand).total}`
+        : "DEALER  ?"
     );
+    this.playerTotalText.setText(
+      `YOU  ${calculateHandValue(this.playerHand).total}`
+    );
+  }
+
+  private renderHand(cards: readonly Card[], y: number, hideHoleCard: boolean): void {
+    if (cards.length === 0) return;
+
+    const spacing = cards.length > 1
+      ? Math.min(46, (460 - CARD_WIDTH) / (cards.length - 1))
+      : 0;
+    const handWidth = CARD_WIDTH + spacing * (cards.length - 1);
+    const firstX = 480 - handWidth / 2 + CARD_WIDTH / 2;
+
+    cards.forEach((card, index) => {
+      const hidden = hideHoleCard && index === 1;
+      const image = hidden
+        ? this.add.image(
+            firstX + index * spacing,
+            y,
+            CARD_ASSETS.backs.key,
+            CARD_ASSETS.backs.frames.red
+          )
+        : this.add.image(
+            firstX + index * spacing,
+            y,
+            CARD_ASSETS.faces.key,
+            cardFaceFrame(card)
+          );
+      this.renderedCards.push(image);
+    });
   }
 }
