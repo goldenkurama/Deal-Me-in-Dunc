@@ -95,6 +95,22 @@ describe("arcade payouts", () => {
     });
   });
 
+  it("awards and preserves five-ending profits from 1.5x multipliers", () => {
+    expect(calculateArcadePayout({
+      outcome: "player-win",
+      wager: 10,
+      chipsStaked: 10,
+      positiveProfitMultiplier: 1.5
+    })).toEqual({
+      outcome: "player-win",
+      wager: 10,
+      chipsStaked: 10,
+      chipsAwarded: 25,
+      chipProfit: 15,
+      dunkaroosAwarded: 15
+    });
+  });
+
   it("supports Piggy Bank Save refunds", () => {
     expect(calculateArcadePayout({
       outcome: "dealer-win",

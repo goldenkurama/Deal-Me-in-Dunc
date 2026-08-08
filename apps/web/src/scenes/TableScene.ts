@@ -33,7 +33,7 @@ import {
 } from "@fox-blackjack/game-core";
 import { Dealer } from "../objects/Dealer";
 import { TrinketConveyor } from "../objects/TrinketConveyor";
-import { GAME_FONT_FAMILY } from "../config/typography";
+import { GAME_FONT_FAMILY, GAME_NUMBER_FONT_FAMILY } from "../config/typography";
 import { settleCompletedHand } from "../api/gameApi";
 import {
   CARD_ASSETS,
@@ -155,28 +155,57 @@ export class TableScene extends Phaser.Scene {
       })
       .setOrigin(0, 0);
 
-    this.dealerTotalText = this.add
-      .text(718, 337, "", {
+    this.add
+      .text(700, 337, "DEALER", {
         fontFamily: GAME_FONT_FAMILY,
         fontSize: "15px",
         color: "#d9c9a5"
       })
-      .setOrigin(0.5);
+      .setOrigin(1, 0.5);
 
-    this.playerTotalText = this.add
-      .text(718, 426, "", {
+    this.dealerTotalText = this.add
+      .text(710, 337, "", {
+        fontFamily: GAME_NUMBER_FONT_FAMILY,
+        fontStyle: "bold",
+        fontSize: "18px",
+        color: "#d9c9a5"
+      })
+      .setOrigin(0, 0.5);
+
+    this.add
+      .text(700, 426, "YOU", {
         fontFamily: GAME_FONT_FAMILY,
         fontSize: "15px",
         color: "#f6e8c8"
       })
-      .setOrigin(0.5);
+      .setOrigin(1, 0.5);
+
+    this.playerTotalText = this.add
+      .text(710, 426, "", {
+        fontFamily: GAME_NUMBER_FONT_FAMILY,
+        fontStyle: "bold",
+        fontSize: "18px",
+        color: "#f6e8c8"
+      })
+      .setOrigin(0, 0.5);
+
+    this.add
+      .text(830, 30, "CHIPS\nDUNKAROOS", {
+        fontFamily: GAME_FONT_FAMILY,
+        fontSize: "15px",
+        color: "#f7d56b",
+        lineSpacing: 5
+      })
+      .setOrigin(0, 0);
 
     this.balancesText = this.add
-      .text(925, 28, "", {
-        fontFamily: GAME_FONT_FAMILY,
+      .text(820, 28, "", {
+        fontFamily: GAME_NUMBER_FONT_FAMILY,
+        fontStyle: "bold",
         fontSize: "18px",
         color: "#f7d56b",
-        align: "right"
+        align: "right",
+        lineSpacing: 1
       })
       .setOrigin(1, 0);
 
@@ -1178,7 +1207,7 @@ export class TableScene extends Phaser.Scene {
   }
 
   private refreshBalances(): void {
-    this.balancesText.setText(`chips: ${this.chips}\ndunkaroos: ${this.dunkaroos}`);
+    this.balancesText.setText(`${this.chips}\n${this.dunkaroos}`);
   }
 
   private refreshHandCards(showDealerHoleCard: boolean, revealPlayer = false): void {
@@ -1190,8 +1219,8 @@ export class TableScene extends Phaser.Scene {
     });
     this.renderHand(this.playerHand, 426, (index) => !revealPlayer && index === this.hiddenPlayerCardIndex);
 
-    this.dealerTotalText.setText(showDealerHoleCard ? `DEALER  ${this.dealerValue().total}` : "DEALER  ?");
-    this.playerTotalText.setText(!revealPlayer && this.hiddenPlayerCardIndex !== null ? "YOU  ?" : `YOU  ${this.playerValue().total}`);
+    this.dealerTotalText.setText(showDealerHoleCard ? String(this.dealerValue().total) : "?");
+    this.playerTotalText.setText(!revealPlayer && this.hiddenPlayerCardIndex !== null ? "?" : String(this.playerValue().total));
   }
 
   private renderHand(cards: readonly Card[], y: number, hidden: (index: number) => boolean): void {
