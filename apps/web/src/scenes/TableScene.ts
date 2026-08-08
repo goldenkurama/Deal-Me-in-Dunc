@@ -21,6 +21,7 @@ import {
   lowestCardIndex,
   deriveArcadeScoringRules,
   resolveArcadeOutcome,
+  resolveRubberBandBust,
   shuffleDeck,
   type ActiveHouseRule,
   type ArcadePayout,
@@ -124,6 +125,7 @@ export class TableScene extends Phaser.Scene {
   private pendingTimeCapsuleCard: Card | null = null;
   private timeCapsuleHitCard: Card | null = null;
   private forcedOutcome: HandOutcome | null = null;
+  private handResolutionNote = "";
 
   constructor() {
     super("TableScene");
@@ -499,6 +501,7 @@ export class TableScene extends Phaser.Scene {
     this.chickenActive = false;
     this.hiddenPlayerCardIndex = null;
     this.forcedOutcome = null;
+    this.handResolutionNote = "";
     this.hitAtEighteenOrHigher = false;
   }
 
@@ -534,7 +537,6 @@ export class TableScene extends Phaser.Scene {
     }
 
     this.resolveTradingPrediction(drawn);
-    this.tradingComparison = drawn;
     this.applyFiveFingerDiscount();
     this.refreshHandCards(false);
     return this.handlePlayerTerminal();
@@ -546,6 +548,7 @@ export class TableScene extends Phaser.Scene {
     if (correct) this.correctTradingPredictions += 1;
     this.statusText.setText(correct ? "TRADING CARD: CORRECT! +1x PROFIT." : "TRADING CARD: MISSED.");
     this.tradingPrediction = null;
+    this.tradingComparison = null;
   }
 
   private applyFiveFingerDiscount(): void {
@@ -575,14 +578,21 @@ export class TableScene extends Phaser.Scene {
     }
 
     if (bustTrinket === "rubber-band" || this.hasTrinket("rubber-band")) {
-      const bustingCard = this.playerHand.pop();
-      if (bustingCard) this.dealerHand.push(bustingCard);
-      this.forcedOutcome = this.dealerValue().busted ? "push" : "dealer-win";
-      this.statusText.setText(
-        this.forcedOutcome === "push"
-          ? "RUBBER BAND: DUNCAN BUSTED TOO. PUSH!"
-          : "RUBBER BAND: DUNCAN SURVIVED THE FLUNG CARD."
-      );
+      const result = resolveRubberBandBust(this.playerHand, this.dealerHand, this.scoringRules());
+      this.playerHand = [...result.playerHand];
+      this.dealerHand = [...result.dealerHand];
+      this.forcedOutcome = result.outcome;
+      this.handResolutionNote = result.outcome === "push"
+        ? "RUBBER BAND FLUNG YOUR BUST CARD TO DUNCAN. HE BUSTED TOO!"
+        : "RUBBER BAND FLUNG YOUR BUST CARD TO DUNCAN, BUT HE SURVIVED.";
+      this.statusText.setText(this.handResolutionNote);
+      this.refreshHandCards(false);
+      this.hideAllActionControls();
+      this.phase = "opening";
+      void this.delay(1_000).then(() => {
+        if (this.scene.isActive()) void this.finishResolvedHand();
+      });
+      return true;
     }
     void this.finishResolvedHand();
     return true;
@@ -670,7 +680,7 @@ export class TableScene extends Phaser.Scene {
       lossRefundFraction:
         !this.hasHouseRule("all-bets-are-off") && this.piggyChoice === "save" ? 0.5 : 0
     });
-    const resultMessage = `${this.describeOutcome(outcome)} ${this.rewardText(payout)}`;
+    const resultMessage = `${this.handResolutionNote ? `${this.handResolutionNote} ` : ""}${this.describeOutcome(outcome)} ${this.rewardText(payout)}`;
     this.refreshHandCards(true, true);
     this.statusText.setText("SAVING HAND...");
 
@@ -798,17 +808,22 @@ export class TableScene extends Phaser.Scene {
   }
 
   private async useTradingCard(): Promise<void> {
-    if (!this.tradingComparison) {
-      this.statusText.setText("TRADING CARD NEEDS A HIT CARD TO COMPARE.");
+    if (this.tradingPrediction || this.tradingComparison) {
+      this.statusText.setText("TRADING CARD ALREADY HAS A PREDICTION LOCKED.");
       return;
     }
+    const comparison = this.takeCard();
+    this.tradingComparison = comparison;
     const selected = await this.askOptions(
-      `NEXT CARD VS ${this.cardLabel(this.tradingComparison)}?`,
-      [{ value: "higher", label: "HIGHER" }, { value: "lower", label: "LOWER" }]
+      `WILL YOUR NEXT HIT BE HIGHER OR LOWER THAN ${this.cardLabel(comparison)}?`,
+      [{ value: "higher", label: "HIGHER" }, { value: "lower", label: "LOWER" }],
+      comparison
     );
     if (selected === "higher" || selected === "lower") {
       this.tradingPrediction = selected;
       this.statusText.setText(`TRADING CARD LOCKED: ${selected.toUpperCase()}.`);
+    } else {
+      this.tradingComparison = null;
     }
     this.restorePlayingControls();
   }
@@ -948,20 +963,23 @@ export class TableScene extends Phaser.Scene {
 
   private askOptions(
     prompt: string,
-    options: readonly { value: string; label: string }[]
+    options: readonly { value: string; label: string }[],
+    comparisonCard?: Card
   ): Promise<string | null> {
     this.hideAllActionControls();
     this.clearModal();
     return new Promise((resolve) => {
+      const panelY = comparisonCard ? 255 : 350;
+      const panelHeight = comparisonCard ? 210 : 115;
       const panel = this.add.graphics().setDepth(300);
       panel.fillStyle(0x241b14, 0.98);
-      panel.fillRoundedRect(255, 350, 450, 115, 12);
+      panel.fillRoundedRect(255, panelY, 450, panelHeight, 12);
       panel.lineStyle(4, 0xe5c99b);
-      panel.strokeRoundedRect(255, 350, 450, 115, 12);
+      panel.strokeRoundedRect(255, panelY, 450, panelHeight, 12);
       this.modalObjects.push(panel);
 
       const label = this.add
-        .text(480, 368, prompt, {
+        .text(480, panelY + 18, prompt, {
           fontFamily: GAME_FONT_FAMILY,
           fontSize: "14px",
           color: "#f6e8c8",
@@ -971,6 +989,13 @@ export class TableScene extends Phaser.Scene {
         .setOrigin(0.5, 0)
         .setDepth(301);
       this.modalObjects.push(label);
+
+      if (comparisonCard) {
+        const card = this.add
+          .image(480, panelY + 103, CARD_ASSETS.faces.key, cardFaceFrame(comparisonCard))
+          .setDepth(301);
+        this.modalObjects.push(card);
+      }
 
       const spacing = Math.min(125, 360 / Math.max(1, options.length));
       const startX = 480 - spacing * (options.length - 1) / 2;
@@ -984,7 +1009,7 @@ export class TableScene extends Phaser.Scene {
 
       options.forEach((option, index) => {
         const button = this.add
-          .text(startX + spacing * index, 430, option.label, {
+          .text(startX + spacing * index, comparisonCard ? panelY + 180 : 430, option.label, {
             fontFamily: GAME_FONT_FAMILY,
             fontSize: "14px",
             color: "#2a1b13",

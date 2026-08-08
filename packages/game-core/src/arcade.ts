@@ -45,7 +45,7 @@ export const TRINKETS: readonly TrinketDefinition[] = Object.freeze([
   { id: "golf-scoring-card", name: "Golf Scoring Card", description: "The lower non-busted total wins.", interaction: "passive" },
   { id: "record", name: "Record", description: "Flip between a face-card win bonus and a no-face-card win bonus.", interaction: "click" },
   { id: "sunglasses", name: "Sunglasses", description: "One of your cards is hidden. Winning profit is tripled.", interaction: "passive" },
-  { id: "trading-card", name: "Trading Card", description: "After a Hit, predict whether the next card is higher or lower for a +1x win bonus.", interaction: "click" },
+  { id: "trading-card", name: "Trading Card", description: "Draw a separate comparison card, then predict whether your next Hit is higher or lower for a +1x win bonus.", interaction: "click" },
   { id: "rubber-chicken", name: "Rubber Chicken", description: "Start Chicken Game. You and Duncan alternate Hits until somebody busts.", interaction: "click" },
   { id: "lucky-keychain", name: "Lucky Keychain", description: "Once per hand, change a visible 6 into a 9 or a 9 into a 6.", interaction: "click" },
   { id: "gameshark", name: "Gameshark", description: "A five-card hand counts as Blackjack, even if its fifth card busts.", interaction: "passive" },
@@ -262,6 +262,29 @@ export function compareCardValues(
   if (nextValue > comparisonValue) return "higher";
   if (nextValue < comparisonValue) return "lower";
   return "equal";
+}
+
+export interface RubberBandBustResult {
+  readonly playerHand: readonly Card[];
+  readonly dealerHand: readonly Card[];
+  readonly flungCard: Card | null;
+  readonly outcome: "push" | "dealer-win";
+}
+
+export function resolveRubberBandBust(
+  playerHand: readonly Card[],
+  dealerHand: readonly Card[],
+  rules: ArcadeScoringRules = BASE_ARCADE_SCORING_RULES
+): RubberBandBustResult {
+  const nextPlayerHand = [...playerHand];
+  const flungCard = nextPlayerHand.pop() ?? null;
+  const nextDealerHand = flungCard ? [...dealerHand, flungCard] : [...dealerHand];
+  return {
+    playerHand: nextPlayerHand,
+    dealerHand: nextDealerHand,
+    flungCard,
+    outcome: calculateArcadeHandValue(nextDealerHand, rules).busted ? "push" : "dealer-win"
+  };
 }
 
 export function lowestCardIndex(

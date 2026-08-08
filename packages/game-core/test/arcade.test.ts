@@ -9,6 +9,7 @@ import {
   createSeededRandom,
   offerTrinkets,
   lowestCardIndex,
+  resolveRubberBandBust,
   resolveArcadeOutcome
 } from "../src/index.js";
 import type { Card, TrinketSlots } from "../src/index.js";
@@ -54,6 +55,18 @@ describe("arcade scoring", () => {
     expect(compareCardValues(card("6"), card("9"))).toBe("higher");
     expect(compareCardValues(card("K"), card("Q"))).toBe("equal");
     expect(lowestCardIndex([card("9"), card("2"), card("5")])).toBe(1);
+  });
+
+  it("flings the busting card into the dealer hand for Rubber Band", () => {
+    const result = resolveRubberBandBust(
+      [card("10"), card("8"), card("6", "hearts")],
+      [card("10"), card("7")]
+    );
+
+    expect(result.playerHand).toEqual([card("10"), card("8")]);
+    expect(result.dealerHand).toEqual([card("10"), card("7"), card("6", "hearts")]);
+    expect(result.flungCard).toEqual(card("6", "hearts"));
+    expect(result.outcome).toBe("push");
   });
 
   it("lets the lower non-busted Golf total win", () => {
