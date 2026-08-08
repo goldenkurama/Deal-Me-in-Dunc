@@ -84,13 +84,25 @@ describe("arcade payouts", () => {
   it("stacks additive and multiplicative Trinket bonuses", () => {
     expect(calculateProfitMultiplier({
       punchCardHits: 2,
-      followedMagic8Ball: true,
+      followedMagic8BallCount: 1,
       correctTradingPredictions: 1,
       sunglasses: true,
       recordBonus: true,
       piggyBankSmash: true,
       bandAidUsed: true
     })).toBe(21);
+  });
+
+  it("stacks Magic 8 Ball bonuses across separate followed actions", () => {
+    expect(calculateProfitMultiplier({
+      punchCardHits: 0,
+      followedMagic8BallCount: 2,
+      correctTradingPredictions: 0,
+      sunglasses: false,
+      recordBonus: false,
+      piggyBankSmash: false,
+      bandAidUsed: false
+    })).toBe(2);
   });
   it("stacks bonuses and rounds once after Blackjack base profit", () => {
     expect(calculateArcadePayout({

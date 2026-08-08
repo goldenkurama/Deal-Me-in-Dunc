@@ -113,9 +113,8 @@ export class TableScene extends Phaser.Scene {
   private diceUsed = false;
   private hallPassUsed = false;
   private timeCapsuleUsed = false;
-  private magic8BallUsed = false;
   private magicAdvice: Advice | null = null;
-  private magicAdviceFollowed = false;
+  private followedMagicAdviceCount = 0;
   private tradingComparison: Card | null = null;
   private tradingPrediction: Prediction | null = null;
   private correctTradingPredictions = 0;
@@ -491,9 +490,8 @@ export class TableScene extends Phaser.Scene {
     this.diceUsed = false;
     this.hallPassUsed = false;
     this.timeCapsuleUsed = false;
-    this.magic8BallUsed = false;
     this.magicAdvice = null;
-    this.magicAdviceFollowed = false;
+    this.followedMagicAdviceCount = 0;
     this.tradingComparison = null;
     this.tradingPrediction = null;
     this.correctTradingPredictions = 0;
@@ -656,7 +654,7 @@ export class TableScene extends Phaser.Scene {
     }
     return calculateProfitMultiplier({
       punchCardHits: this.hasTrinket("punch-card") ? this.hitCount : 0,
-      followedMagic8Ball: this.magicAdviceFollowed,
+      followedMagic8BallCount: this.followedMagicAdviceCount,
       correctTradingPredictions: this.correctTradingPredictions,
       sunglasses: this.hasTrinket("sunglasses"),
       recordBonus,
@@ -815,7 +813,7 @@ export class TableScene extends Phaser.Scene {
     const comparison = this.takeCard();
     this.tradingComparison = comparison;
     const selected = await this.askOptions(
-      `WILL YOUR NEXT HIT BE HIGHER OR LOWER THAN ${this.cardLabel(comparison)}?`,
+      "WILL YOUR NEXT HIT BE HIGHER OR LOWER THAN THIS CARD?",
       [{ value: "higher", label: "HIGHER" }, { value: "lower", label: "LOWER" }],
       comparison
     );
@@ -907,18 +905,17 @@ export class TableScene extends Phaser.Scene {
   }
 
   private useMagic8Ball(): void {
-    if (this.magic8BallUsed) {
-      this.statusText.setText("THE MAGIC 8 BALL ALREADY SPOKE THIS HAND.");
+    if (this.magicAdvice) {
+      this.statusText.setText("THE MAGIC 8 BALL ALREADY SPOKE. HIT OR STAND FIRST.");
       return;
     }
-    this.magic8BallUsed = true;
     this.magicAdvice = Math.random() < 0.5 ? "hit" : "stand";
     this.statusText.setText(`MAGIC 8 BALL SAYS: ${this.magicAdvice.toUpperCase()}.`);
   }
 
   private resolveMagicAdvice(action: Advice): void {
     if (!this.magicAdvice) return;
-    this.magicAdviceFollowed = this.magicAdvice === action;
+    if (this.magicAdvice === action) this.followedMagicAdviceCount += 1;
     this.magicAdvice = null;
   }
 
@@ -957,13 +954,17 @@ export class TableScene extends Phaser.Scene {
     }
     return this.askOptions(
       prompt,
-      indices.map((index) => ({ value: String(index), label: this.cardLabel(this.playerHand[index] as Card) }))
+      indices.map((index) => ({
+        value: String(index),
+        label: this.cardLabel(this.playerHand[index] as Card),
+        fontFamily: GAME_NUMBER_FONT_FAMILY
+      }))
     ).then((value) => value === null ? null : Number(value));
   }
 
   private askOptions(
     prompt: string,
-    options: readonly { value: string; label: string }[],
+    options: readonly { value: string; label: string; fontFamily?: string }[],
     comparisonCard?: Card
   ): Promise<string | null> {
     this.hideAllActionControls();
@@ -994,7 +995,16 @@ export class TableScene extends Phaser.Scene {
         const card = this.add
           .image(480, panelY + 103, CARD_ASSETS.faces.key, cardFaceFrame(comparisonCard))
           .setDepth(301);
-        this.modalObjects.push(card);
+        const cardValue = this.add
+          .text(530, panelY + 103, this.cardLabel(comparisonCard), {
+            fontFamily: GAME_NUMBER_FONT_FAMILY,
+            fontStyle: "bold",
+            fontSize: "20px",
+            color: "#f6e8c8"
+          })
+          .setOrigin(0, 0.5)
+          .setDepth(301);
+        this.modalObjects.push(card, cardValue);
       }
 
       const spacing = Math.min(125, 360 / Math.max(1, options.length));
@@ -1010,7 +1020,8 @@ export class TableScene extends Phaser.Scene {
       options.forEach((option, index) => {
         const button = this.add
           .text(startX + spacing * index, comparisonCard ? panelY + 180 : 430, option.label, {
-            fontFamily: GAME_FONT_FAMILY,
+            fontFamily: option.fontFamily ?? GAME_FONT_FAMILY,
+            fontStyle: option.fontFamily ? "bold" : "normal",
             fontSize: "14px",
             color: "#2a1b13",
             backgroundColor: "#e5c99b",

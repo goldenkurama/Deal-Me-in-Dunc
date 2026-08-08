@@ -232,7 +232,7 @@ export interface ArcadePayoutInput {
 
 export interface ProfitMultiplierInput {
   readonly punchCardHits: number;
-  readonly followedMagic8Ball: boolean;
+  readonly followedMagic8BallCount: number;
   readonly correctTradingPredictions: number;
   readonly sunglasses: boolean;
   readonly recordBonus: boolean;
@@ -244,7 +244,7 @@ export function calculateProfitMultiplier(input: ProfitMultiplierInput): number 
   if (!Number.isSafeInteger(input.punchCardHits) || input.punchCardHits < 0) throw new Error("Punch Card Hits must be a non-negative whole number.");
   if (!Number.isSafeInteger(input.correctTradingPredictions) || input.correctTradingPredictions < 0) throw new Error("Correct predictions must be a non-negative whole number.");
   let multiplier = 1 + input.punchCardHits * 0.5;
-  if (input.followedMagic8Ball) multiplier += 0.5;
+  multiplier += input.followedMagic8BallCount * 0.5;
   multiplier += input.correctTradingPredictions;
   if (input.sunglasses) multiplier *= 3;
   if (input.recordBonus) multiplier *= 2;
