@@ -7,6 +7,7 @@ import {
   GAME_SFX,
   SCENE_ASSETS,
   TRINKET_ASSETS,
+  TRINKET_ART,
   UI_ASSETS
 } from "../assets";
 
@@ -57,6 +58,14 @@ export class BootScene extends Phaser.Scene {
         TRINKET_ASSETS.conveyor.key,
         TRINKET_ASSETS.conveyor.url
       );
+    }
+
+    this.load.image(
+      TRINKET_ASSETS.placeholder.key,
+      TRINKET_ASSETS.placeholder.url
+    );
+    for (const art of Object.values(TRINKET_ART)) {
+      if (art.ready) this.load.image(art.key, art.url);
     }
 
   }

@@ -18,6 +18,9 @@ import { databaseGameService } from "../src/services/databaseGameService.js";
 const settlement = {
   handId: "8b55c446-a140-4bd8-9a3a-b6dcb039b1de",
   wager: 10,
+  chipsStaked: 10,
+  chipsAwarded: 25,
+  dunkaroosAwarded: 15,
   outcome: "player-blackjack" as const
 };
 
@@ -65,6 +68,29 @@ describe("database game settlement", () => {
       databaseGameService.settleHand("7", { ...settlement, wager: 5 })
     ).rejects.toMatchObject({ status: 400, code: "invalid_wager" });
 
+    expect(database.getConnection).not.toHaveBeenCalled();
+  });
+
+  it("supports a free All Bets Are Off hand", async () => {
+    database.execute
+      .mockResolvedValueOnce([[{ chips: 100, dunkaroos: 5 }]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValue([{}]);
+
+    await expect(databaseGameService.settleHand("7", {
+      ...settlement,
+      outcome: "player-win",
+      chipsStaked: 0,
+      chipsAwarded: 10,
+      dunkaroosAwarded: 10
+    })).resolves.toEqual({ balances: { chips: 110, dunkaroos: 15 } });
+  });
+
+  it("rejects rewards that do not match positive chip profit", async () => {
+    await expect(databaseGameService.settleHand("7", {
+      ...settlement,
+      dunkaroosAwarded: 999
+    })).rejects.toMatchObject({ status: 400, code: "invalid_rewards" });
     expect(database.getConnection).not.toHaveBeenCalled();
   });
 });

@@ -28,12 +28,25 @@ function readSettlement(body: unknown): HandSettlementRequest {
     body === null ||
     !("handId" in body) ||
     !("wager" in body) ||
+    !("chipsStaked" in body) ||
+    !("chipsAwarded" in body) ||
+    !("dunkaroosAwarded" in body) ||
     !("outcome" in body) ||
     typeof body.handId !== "string" ||
     !HAND_ID_PATTERN.test(body.handId) ||
     typeof body.wager !== "number" ||
     !Number.isSafeInteger(body.wager) ||
     body.wager <= 0 ||
+    typeof body.chipsStaked !== "number" ||
+    !Number.isSafeInteger(body.chipsStaked) ||
+    body.chipsStaked < 0 ||
+    body.chipsStaked > body.wager ||
+    typeof body.chipsAwarded !== "number" ||
+    !Number.isSafeInteger(body.chipsAwarded) ||
+    body.chipsAwarded < 0 ||
+    typeof body.dunkaroosAwarded !== "number" ||
+    !Number.isSafeInteger(body.dunkaroosAwarded) ||
+    body.dunkaroosAwarded < 0 ||
     !isBlackjackOutcome(body.outcome)
   ) {
     throw new GameError(400, "invalid_settlement", "Invalid hand settlement");
@@ -42,6 +55,9 @@ function readSettlement(body: unknown): HandSettlementRequest {
   return {
     handId: body.handId,
     wager: body.wager,
+    chipsStaked: body.chipsStaked,
+    chipsAwarded: body.chipsAwarded,
+    dunkaroosAwarded: body.dunkaroosAwarded,
     outcome: body.outcome
   };
 }

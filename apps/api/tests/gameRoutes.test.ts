@@ -64,6 +64,9 @@ describe("game routes", () => {
     const settlement = {
       handId: "8b55c446-a140-4bd8-9a3a-b6dcb039b1de",
       wager: 10,
+      chipsStaked: 10,
+      chipsAwarded: 25,
+      dunkaroosAwarded: 15,
       outcome: "player-blackjack" as const
     };
 

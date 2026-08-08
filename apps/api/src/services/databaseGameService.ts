@@ -1,5 +1,4 @@
 import type { RowDataPacket } from "mysql2";
-import { settleHandOutcome } from "@fox-blackjack/game-core";
 import type {
   HandSettlementRequest,
   HandSettlementResponse
@@ -29,7 +28,19 @@ async function settleHand(
     );
   }
 
-  const resolution = settleHandOutcome(settlement.outcome, settlement.wager);
+  const chipProfit = settlement.chipsAwarded - settlement.chipsStaked;
+  const expectedDunkaroos = Math.max(0, chipProfit);
+  if (settlement.dunkaroosAwarded !== expectedDunkaroos) {
+    throw new GameError(400, "invalid_rewards", "Dunkaroos must equal positive chip profit");
+  }
+  if (
+    (settlement.outcome === "push" &&
+      settlement.chipsAwarded !== settlement.chipsStaked) ||
+    (settlement.outcome === "dealer-win" && chipProfit > 0) ||
+    ((settlement.outcome === "player-win" || settlement.outcome === "player-blackjack") && chipProfit < 0)
+  ) {
+    throw new GameError(400, "invalid_rewards", "Rewards do not match the hand outcome");
+  }
   const connection = await pool.getConnection();
 
   try {
@@ -54,7 +65,7 @@ async function settleHand(
       return { balances: { chips: user.chips, dunkaroos: user.dunkaroos } };
     }
 
-    if (user.chips < settlement.wager) {
+    if (user.chips < settlement.chipsStaked) {
       throw new GameError(
         409,
         "insufficient_chips",
@@ -62,30 +73,32 @@ async function settleHand(
       );
     }
 
-    const chipsAfterWager = user.chips - settlement.wager;
-    const nextChips = chipsAfterWager + resolution.chipsReturned;
-    const nextDunkaroos = user.dunkaroos + resolution.dunkaroosAwarded;
+    const chipsAfterWager = user.chips - settlement.chipsStaked;
+    const nextChips = chipsAfterWager + settlement.chipsAwarded;
+    const nextDunkaroos = user.dunkaroos + settlement.dunkaroosAwarded;
 
     await connection.execute(
       "UPDATE users SET chips = ?, dunkaroos = ? WHERE id = ?",
       [nextChips, nextDunkaroos, userId]
     );
 
-    await connection.execute(
-      `INSERT INTO currency_transactions
-       (user_id, currency, amount, reason, balance_after,
-        transaction_group_key, reference_type, reference_key)
-       VALUES (?, 'chips', ?, 'blackjack_wager', ?, ?, 'blackjack_hand', ?)`,
-      [
-        userId,
-        -settlement.wager,
-        chipsAfterWager,
-        settlement.handId,
-        settlement.outcome
-      ]
-    );
+    if (settlement.chipsStaked > 0) {
+      await connection.execute(
+        `INSERT INTO currency_transactions
+         (user_id, currency, amount, reason, balance_after,
+          transaction_group_key, reference_type, reference_key)
+         VALUES (?, 'chips', ?, 'blackjack_wager', ?, ?, 'blackjack_hand', ?)`,
+        [
+          userId,
+          -settlement.chipsStaked,
+          chipsAfterWager,
+          settlement.handId,
+          settlement.outcome
+        ]
+      );
+    }
 
-    if (resolution.chipsReturned > 0) {
+    if (settlement.chipsAwarded > 0) {
       await connection.execute(
         `INSERT INTO currency_transactions
          (user_id, currency, amount, reason, balance_after,
@@ -93,7 +106,7 @@ async function settleHand(
          VALUES (?, 'chips', ?, 'blackjack_payout', ?, ?, 'blackjack_hand', ?)`,
         [
           userId,
-          resolution.chipsReturned,
+          settlement.chipsAwarded,
           nextChips,
           settlement.handId,
           settlement.outcome
@@ -101,7 +114,7 @@ async function settleHand(
       );
     }
 
-    if (resolution.dunkaroosAwarded > 0) {
+    if (settlement.dunkaroosAwarded > 0) {
       await connection.execute(
         `INSERT INTO currency_transactions
          (user_id, currency, amount, reason, balance_after,
@@ -109,7 +122,7 @@ async function settleHand(
          VALUES (?, 'dunkaroos', ?, 'blackjack_dunkaroos', ?, ?, 'blackjack_hand', ?)`,
         [
           userId,
-          resolution.dunkaroosAwarded,
+          settlement.dunkaroosAwarded,
           nextDunkaroos,
           settlement.handId,
           settlement.outcome

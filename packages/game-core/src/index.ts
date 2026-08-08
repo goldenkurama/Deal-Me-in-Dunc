@@ -6,3 +6,4 @@ export * from "./conveyor.js";
 export * from "./houseRules.js";
 export * from "./dialogue.js";
 export * from "./progression.js";
+export * from "./arcade.js";

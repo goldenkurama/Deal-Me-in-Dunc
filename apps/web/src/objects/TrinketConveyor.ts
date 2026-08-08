@@ -1,8 +1,18 @@
 import Phaser from "phaser";
-import { TRINKET_ASSETS } from "../assets";
+import {
+  getTrinket,
+  isTrinketId,
+  type TrinketId,
+  type TrinketSlots
+} from "@fox-blackjack/game-core";
+import { TRINKET_ASSETS, trinketTextureKey } from "../assets";
 import { GAME_FONT_FAMILY } from "../config/typography";
 
 export class TrinketConveyor extends Phaser.GameObjects.Container {
+  private readonly slotContents: Phaser.GameObjects.GameObject[] = [];
+  private readonly tooltip: Phaser.GameObjects.Text;
+  private onActivate: (id: TrinketId) => void = () => undefined;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
     scene.add.existing(this);
@@ -22,6 +32,46 @@ export class TrinketConveyor extends Phaser.GameObjects.Container {
     }
 
     this.addSlotLabels(scene);
+    this.tooltip = scene.add
+      .text(172, 8, "", {
+        fontFamily: GAME_FONT_FAMILY,
+        fontSize: "12px",
+        color: "#2a1b13",
+        backgroundColor: "#f6e8c8",
+        padding: { x: 9, y: 7 },
+        wordWrap: { width: 235 }
+      })
+      .setVisible(false)
+      .setDepth(100);
+    this.add(this.tooltip);
+  }
+
+  setSlots(slots: TrinketSlots, onActivate: (id: TrinketId) => void): void {
+    this.onActivate = onActivate;
+    for (const content of this.slotContents.splice(0)) content.destroy();
+
+    slots.forEach((slot, index) => {
+      if (!slot || !isTrinketId(slot.id)) return;
+      const trinketId = slot.id;
+      const center = TRINKET_ASSETS.slot.centers[index];
+      const definition = getTrinket(trinketId);
+      const icon = this.scene.add
+        .image(center.x, center.y, trinketTextureKey(trinketId))
+        .setDisplaySize(
+          TRINKET_ASSETS.trinket.displaySize,
+          TRINKET_ASSETS.trinket.displaySize
+        )
+        .setInteractive({ useHandCursor: definition.interaction !== "passive" });
+      icon.on("pointerover", () => {
+        this.tooltip
+          .setText(`${definition.name.toUpperCase()}\n${definition.description}`)
+          .setVisible(true);
+      });
+      icon.on("pointerout", () => this.tooltip.setVisible(false));
+      icon.on("pointerdown", () => this.onActivate(trinketId));
+      this.slotContents.push(icon);
+      this.add(icon);
+    });
   }
 
   private drawPlaceholder(scene: Phaser.Scene): void {

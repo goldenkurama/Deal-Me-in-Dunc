@@ -44,7 +44,13 @@ export type BlackjackOutcome =
 
 export interface HandSettlementRequest {
   readonly handId: string;
+  /** Nominal wager used to calculate winnings, including free House Rule hands. */
   readonly wager: number;
+  /** Chips actually removed before the hand. Zero for All Bets Are Off. */
+  readonly chipsStaked: number;
+  /** Chips returned or awarded after the hand, including any stake refund. */
+  readonly chipsAwarded: number;
+  readonly dunkaroosAwarded: number;
   readonly outcome: BlackjackOutcome;
 }
 
