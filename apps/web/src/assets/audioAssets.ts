@@ -9,7 +9,8 @@ export const GAME_SFX = Object.freeze({
   menuClick: { key: "menu-click", url: "/assets/audio/sfx/menu-click.wav" },
   bet: { key: "bet", url: "/assets/audio/sfx/bet.wav" },
   coin: { key: "coin", url: "/assets/audio/sfx/coin.wav" },
-  bust: { key: "bust", url: "/assets/audio/sfx/bust.wav" }
+  bust: { key: "bust", url: "/assets/audio/sfx/bust.wav" },
+  newRule: { key: "new-rule", url: "/assets/audio/sfx/new-rule.wav" }
 } as const);
 
 export const GAME_MUSIC = Object.freeze({

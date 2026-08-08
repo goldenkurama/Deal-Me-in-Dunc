@@ -111,14 +111,6 @@ export class LobbyScene extends Phaser.Scene {
     // The final animation may use transparent padding; it will always fit this box.
     dealer.fitInside(width, height);
 
-    this.add
-      .text(areaX, 58, "320 × 250 DUNCAN ANIMATION AREA", {
-        fontFamily: GAME_FONT_FAMILY,
-        fontSize: "12px",
-        color: "#a98a61"
-      })
-      .setOrigin(0.5);
-
     return dealer;
   }
 

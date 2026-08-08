@@ -52,6 +52,7 @@ import {
 
 const MINIMUM_BET = 10;
 const BET_INCREMENT = 10;
+const HOUSE_RULE_CHANGE_DELAY_MS = 2_000;
 
 type TablePhase =
   | "betting"
@@ -83,6 +84,7 @@ export class TableScene extends Phaser.Scene {
   private balancesText!: Phaser.GameObjects.Text;
   private betText!: Phaser.GameObjects.Text;
   private houseRuleText!: Phaser.GameObjects.Text;
+  private houseRulePanel!: Phaser.GameObjects.Graphics;
   private hitButton!: Phaser.GameObjects.Text;
   private standButton!: Phaser.GameObjects.Text;
   private decreaseBetButton!: Phaser.GameObjects.Text;
@@ -143,14 +145,15 @@ export class TableScene extends Phaser.Scene {
     this.drawHouseRulePanel();
 
     this.statusText = this.add
-      .text(480, 98, "", {
+      .text(28, 88, "", {
         fontFamily: GAME_FONT_FAMILY,
-        fontSize: "16px",
+        fontSize: "13px",
         color: "#f6e8c8",
-        align: "center",
-        wordWrap: { width: 430 }
+        align: "left",
+        wordWrap: { width: 235 },
+        lineSpacing: 3
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0);
 
     this.dealerTotalText = this.add
       .text(718, 337, "", {
@@ -201,7 +204,7 @@ export class TableScene extends Phaser.Scene {
 
     this.refreshBalances();
     this.refreshHouseRule();
-    this.enterBettingState("Choose your bet, then press BET.");
+    this.enterBettingState("");
   }
 
   private resetRunState(): void {
@@ -264,11 +267,11 @@ export class TableScene extends Phaser.Scene {
   }
 
   private drawHouseRulePanel(): void {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0xe5c99b, 0.97);
-    graphics.fillRoundedRect(690, 128, 245, 132, 10);
-    graphics.lineStyle(5, 0x5b3b28);
-    graphics.strokeRoundedRect(690, 128, 245, 132, 10);
+    this.houseRulePanel = this.add.graphics();
+    this.houseRulePanel.fillStyle(0xe5c99b, 0.97);
+    this.houseRulePanel.fillRoundedRect(690, 128, 245, 132, 10);
+    this.houseRulePanel.lineStyle(5, 0x5b3b28);
+    this.houseRulePanel.strokeRoundedRect(690, 128, 245, 132, 10);
     this.houseRuleText = this.add
       .text(812, 145, "", {
         fontFamily: GAME_FONT_FAMILY,
@@ -286,6 +289,19 @@ export class TableScene extends Phaser.Scene {
     this.houseRuleText.setText(
       `HOUSE RULE (${this.houseRule.handsRemaining})\n${rule.name.toUpperCase()}\n${rule.description}`
     );
+  }
+
+  private async replaceHouseRule(nextRule: ActiveHouseRule): Promise<void> {
+    this.houseRulePanel.setVisible(false);
+    this.houseRuleText.setVisible(false);
+    await this.delay(HOUSE_RULE_CHANGE_DELAY_MS);
+    if (!this.scene.isActive()) return;
+
+    this.houseRule = nextRule;
+    this.refreshHouseRule();
+    this.houseRulePanel.setVisible(true);
+    this.houseRuleText.setVisible(true);
+    this.audio.playEffect(GAME_SFX.newRule.key);
   }
 
   private createButton(
@@ -426,7 +442,7 @@ export class TableScene extends Phaser.Scene {
     }
 
     this.phase = "playing";
-    this.statusText.setText("H = HIT  /  S = STAND  /  CLICK ACTIVE TRINKETS");
+    this.statusText.setText("");
     this.showPlayingControls();
     this.refreshHandCards(false);
 
@@ -674,10 +690,15 @@ export class TableScene extends Phaser.Scene {
       this.houseRule,
       (expiredId) => chooseHouseRule(expiredId).id
     );
-    this.houseRule = ruleAdvance.houseRule;
+    if (ruleAdvance.changed) {
+      await this.replaceHouseRule(ruleAdvance.houseRule);
+      if (!this.scene.isActive()) return;
+    } else {
+      this.houseRule = ruleAdvance.houseRule;
+      this.refreshHouseRule();
+    }
     if (!this.hasTrinket("record")) this.recordMode = "face";
     this.conveyor.setSlots(this.trinkets, (id) => void this.useTrinket(id));
-    this.refreshHouseRule();
 
     this.phase = "selecting";
     const selected = await this.chooseTrinketOffer(offerTrinkets(this.trinkets));
