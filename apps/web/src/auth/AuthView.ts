@@ -16,7 +16,24 @@ export function renderAuthView(
   const isRegister = mode === "register";
   root.innerHTML = `
     <main class="auth-screen auth-screen--${mode}">
-      <div class="auth-cover">
+      <div class="auth-cover-stage">
+        <img
+          class="auth-decoration auth-decoration--star"
+          src="${AUTH_ASSETS.decorations.star.url}"
+          width="${AUTH_ASSETS.decorations.star.width}"
+          height="${AUTH_ASSETS.decorations.star.height}"
+          alt=""
+          aria-hidden="true"
+        />
+        <img
+          class="auth-decoration auth-decoration--skull"
+          src="${AUTH_ASSETS.decorations.skull.url}"
+          width="${AUTH_ASSETS.decorations.skull.width}"
+          height="${AUTH_ASSETS.decorations.skull.height}"
+          alt=""
+          aria-hidden="true"
+        />
+        <div class="auth-cover">
         <div class="auth-cover__masthead" aria-hidden="true">
           <span>DEAL ME IN,</span>
           <strong>DUNC</strong>
@@ -99,6 +116,7 @@ export function renderAuthView(
         <p class="auth-cover__fineprint" aria-hidden="true">
           NO DRESS CODE. NO VIP LINE. JUST YOU, THE HOUSE, AND WHATEVER HAPPENS NEXT.
         </p>
+        </div>
       </div>
     </main>
   `;
