@@ -31,7 +31,7 @@ export class LobbyScene extends Phaser.Scene {
     const user = this.registry.get("currentUser") as PublicUser;
     this.addRoom();
     this.drawHeader(user);
-    this.addTable();
+    if (!SCENE_ASSETS.room.includesTable) this.addTable();
     const dealer = this.addDealerPlaceholder();
 
     this.createButton(

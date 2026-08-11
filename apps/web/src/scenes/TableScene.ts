@@ -41,6 +41,7 @@ import {
   CARD_WIDTH,
   GAME_MUSIC,
   GAME_SFX,
+  SCENE_ASSETS,
   TRINKET_ASSETS,
   cardFaceFrame,
   trinketTextureKey
@@ -265,19 +266,26 @@ export class TableScene extends Phaser.Scene {
   }
 
   private drawRoom(): void {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x33271d);
-    graphics.fillRect(0, 0, 960, 300);
-    graphics.fillStyle(0x241b14);
-    graphics.fillRect(0, 0, 960, 78);
-    graphics.fillStyle(0x8d6840);
-    graphics.fillRect(0, 76, 960, 5);
-    graphics.fillStyle(0x234c35);
-    graphics.fillRoundedRect(60, 270, 840, 310, 135);
-    graphics.lineStyle(14, 0x5b3b28);
-    graphics.strokeRoundedRect(60, 270, 840, 310, 135);
-    graphics.fillStyle(0x071c16, 0.35);
-    graphics.fillEllipse(480, 405, 540, 180);
+    if (this.textures.exists(SCENE_ASSETS.room.key)) {
+      this.add
+        .image(0, 0, SCENE_ASSETS.room.key)
+        .setOrigin(0)
+        .setDisplaySize(SCENE_ASSETS.room.width, SCENE_ASSETS.room.height);
+    } else {
+      const graphics = this.add.graphics();
+      graphics.fillStyle(0x33271d);
+      graphics.fillRect(0, 0, 960, 300);
+      graphics.fillStyle(0x241b14);
+      graphics.fillRect(0, 0, 960, 78);
+      graphics.fillStyle(0x8d6840);
+      graphics.fillRect(0, 76, 960, 5);
+      graphics.fillStyle(0x234c35);
+      graphics.fillRoundedRect(60, 270, 840, 310, 135);
+      graphics.lineStyle(14, 0x5b3b28);
+      graphics.strokeRoundedRect(60, 270, 840, 310, 135);
+      graphics.fillStyle(0x071c16, 0.35);
+      graphics.fillEllipse(480, 405, 540, 180);
+    }
 
     this.add
       .text(28, 28, "DEAL ME IN, DUNC", {
