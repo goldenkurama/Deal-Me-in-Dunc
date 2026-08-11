@@ -110,6 +110,7 @@ export class Dealer extends Phaser.GameObjects.Sprite {
     interaction: DialogueInteraction
   ): Promise<string | null> {
     this.activeDialogueClose?.();
+    this.showTalkingPose();
 
     return new Promise<string | null>((resolve) => {
       const blocker = this.scene.add
@@ -252,6 +253,7 @@ export class Dealer extends Phaser.GameObjects.Sprite {
         if (this.activeDialogueClose === closeActiveDialogue) {
           this.activeDialogueClose = null;
         }
+        if (this.active && this.scene.sys.isActive()) this.playIdle();
         resolve(result);
       };
 
@@ -366,6 +368,19 @@ export class Dealer extends Phaser.GameObjects.Sprite {
         }
       });
     });
+  }
+
+  private showTalkingPose(): void {
+    this.idleVariationTimer?.remove(false);
+    this.idleVariationTimer = null;
+    for (const variation of DEALER_IDLE_VARIATIONS) {
+      const animation = DEALER_ASSETS.animations[variation.name];
+      this.off(
+        `${Phaser.Animations.Events.ANIMATION_COMPLETE_KEY}${animation.animationKey}`
+      );
+    }
+    this.stop();
+    this.setTexture(DEALER_ASSETS.talking.key);
   }
 
   private playVoiceBlip(): void {

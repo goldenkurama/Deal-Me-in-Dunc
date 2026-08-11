@@ -6,6 +6,12 @@ export const DEALER_ASSETS = Object.freeze({
     width: FRAME_WIDTH,
     height: FRAME_HEIGHT
   },
+  talking: {
+    key: "duncan-talking",
+    url: "/assets/sprites/dealer/duncan-talk.png",
+    width: FRAME_WIDTH,
+    height: FRAME_HEIGHT
+  },
   animations: {
     idle: {
       key: "duncan-idle-sheet",

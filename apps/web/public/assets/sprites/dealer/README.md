@@ -10,5 +10,8 @@ GIF. Every frame is a 320×250 transparent canvas.
 | `duncan-twitch-blink.png` | 10 | 1250, 600, 100, 100, 100, 1000, 600, 100, 100, 100 |
 | `duncan-twitch-blink-fast.png` | 10 | 1250, 100, 100, 100, 100, 1000, 100, 100, 100, 100 |
 
+`duncan-talk.png` is a static 320×250 pose shown for the full lifetime of each
+dialogue box. Duncan resumes the randomized idle animations when the box closes.
+
 The original GIFs remain in the artist's animations folder. Phaser preloads
 these sheets and chooses a one-shot idle variation at randomized intervals.

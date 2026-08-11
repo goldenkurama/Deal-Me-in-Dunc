@@ -17,6 +17,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
+    this.load.image(DEALER_ASSETS.talking.key, DEALER_ASSETS.talking.url);
+
     for (const animation of Object.values(DEALER_ASSETS.animations)) {
       this.load.spritesheet(animation.key, animation.url, {
         frameWidth: animation.frameWidth,
