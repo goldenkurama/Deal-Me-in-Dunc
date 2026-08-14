@@ -735,7 +735,6 @@ export class TableScene extends Phaser.Scene {
     this.resolveMagicAdvice("stand");
     this.cowardTaxApplied = this.hasHouseRule("coward-tax") && this.playerValue().total <= 16;
     if (this.hasHouseRule("cheap-trick")) this.playerTotalAdjustment -= 1;
-    this.statusText.setText("DUNCAN REVEALS THE HAND.");
     await this.delay(CARD_REVEAL_DELAY_MS);
     if (!this.scene.isActive()) return;
     this.refreshHandCards(true, true);
@@ -1733,14 +1732,15 @@ export class TableScene extends Phaser.Scene {
     this.sharedCardLabel = null;
     this.renderHand(this.dealerHand, 337, (index) => {
       if (showDealerHoleCard || this.hasHouseRule("open-hand-night")) return false;
+      if (this.hasHouseRule("shared-custody")) return index === 0;
       return this.hasHouseRule("no-peeking") ? index < 2 : index === 1;
     });
     this.renderHand(this.playerHand, 426, (index) => !revealPlayer && index === this.hiddenPlayerCardIndex);
 
     if (this.sharedCard) {
-      this.renderedCards.push(this.add.image(480, 381, CARD_ASSETS.faces.key, cardFaceFrame(this.sharedCard)).setScale(0.82));
+      this.renderedCards.push(this.add.image(845, 382, CARD_ASSETS.faces.key, cardFaceFrame(this.sharedCard)).setScale(0.82));
       this.sharedCardLabel = this.add
-        .text(480, 381, "SHARED", {
+        .text(845, 424, "SHARED", {
           fontFamily: GAME_FONT_FAMILY,
           fontSize: "8px",
           color: "#f7d56b",
