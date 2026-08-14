@@ -81,7 +81,7 @@ export const TRINKETS: readonly TrinketDefinition[] = Object.freeze([
   { id: "safety-scissors", name: "Safety Scissors", description: "Once per hand, split one non-Ace card and give half to Duncan. Choose who gets the larger odd half.", interaction: "click" },
   { id: "three-ring-binder", name: "Three-Ring Binder", description: "Your hand holds at most three cards. Hitting at the limit discards your oldest card.", interaction: "passive" },
   { id: "participation-trophy", name: "Participation Trophy", description: "Wins at 19 or lower pay double. Winning with 20 or 21 loses the wager.", interaction: "passive" },
-  { id: "deck-of-many-bs-things", name: "Deck of Many BS Things", description: "Before each bet, draw The Fool, The Tower, or The World for the next hand.", interaction: "pre-bet" },
+  { id: "deck-of-many-bs-things", name: "Deck of Many BS Things", description: "Use before betting for a surprise.", interaction: "pre-bet" },
   { id: "junk-drawer", name: "Junk Drawer", description: "Replace every occupied conveyor slot with a random Trinket in the same position.", interaction: "click" },
   { id: "universal-remote", name: "Universal Remote", description: "Once per hand, replace the House Rule while preserving its remaining duration.", interaction: "click" },
   { id: "swap-meet-ticket", name: "Swap Meet Ticket", description: "Once per hand, swap your entire hand with Duncan's.", interaction: "click" },
