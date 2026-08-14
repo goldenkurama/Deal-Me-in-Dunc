@@ -977,7 +977,7 @@ export class TableScene extends Phaser.Scene {
       this.syncTrinketState();
       this.statusText.setText("JUNK DRAWER: EVERY OCCUPIED SLOT WAS RANDOMIZED.");
       this.refreshHandCards(false);
-      this.refreshBetControls();
+      if (this.phase === "betting") this.refreshBetControls();
       return;
     }
     if (this.phase !== "playing" || this.chickenActive) return;
