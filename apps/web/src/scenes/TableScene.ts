@@ -64,6 +64,8 @@ import {
 const MINIMUM_BET = 10;
 const BET_INCREMENT = 10;
 const HOUSE_RULE_CHANGE_DELAY_MS = 2_000;
+const CARD_REVEAL_DELAY_MS = 350;
+const DEALER_ACTION_DELAY_MS = 550;
 
 type TablePhase =
   | "betting"
@@ -724,12 +726,32 @@ export class TableScene extends Phaser.Scene {
 
   private stand(): void {
     if (this.phase !== "playing" || this.chickenActive) return;
+    void this.resolveStand();
+  }
+
+  private async resolveStand(): Promise<void> {
+    this.phase = "opening";
+    this.hideAllActionControls();
     this.resolveMagicAdvice("stand");
     this.cowardTaxApplied = this.hasHouseRule("coward-tax") && this.playerValue().total <= 16;
     if (this.hasHouseRule("cheap-trick")) this.playerTotalAdjustment -= 1;
-    if (this.hasHouseRule("open-hand-night")) this.discardOpenHandCard();
-    this.playDealerHand();
-    void this.finishResolvedHand();
+    this.statusText.setText("DUNCAN REVEALS THE HAND.");
+    await this.delay(CARD_REVEAL_DELAY_MS);
+    if (!this.scene.isActive()) return;
+    this.refreshHandCards(true, true);
+    await this.delay(DEALER_ACTION_DELAY_MS);
+    if (!this.scene.isActive()) return;
+
+    if (this.hasHouseRule("open-hand-night")) {
+      this.discardOpenHandCard();
+      this.refreshHandCards(true, true);
+      await this.delay(DEALER_ACTION_DELAY_MS);
+      if (!this.scene.isActive()) return;
+    }
+
+    await this.playDealerHandAnimated();
+    if (!this.scene.isActive()) return;
+    await this.finishResolvedHand();
   }
 
   private discardOpenHandCard(): void {
@@ -774,15 +796,20 @@ export class TableScene extends Phaser.Scene {
     }
   }
 
-  private playDealerHand(): void {
+  private async playDealerHandAnimated(): Promise<void> {
     let drawsRemaining = this.deck.length;
     while (this.shouldDealerHit() && drawsRemaining > 0) {
+      this.statusText.setText("DUNCAN HITS.");
+      await this.delay(DEALER_ACTION_DELAY_MS);
+      if (!this.scene.isActive()) return;
       this.dealerHand.push(this.takeCard());
       if (this.hasHouseRule("two-card-monte") && this.dealerHand.length > 2) {
         this.dealerHand.shift();
       }
+      this.refreshHandCards(true, true);
       drawsRemaining -= 1;
     }
+    await this.delay(DEALER_ACTION_DELAY_MS);
   }
 
   private shouldDealerHit(forcedHits = false): boolean {
