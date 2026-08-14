@@ -9,7 +9,10 @@ import { TRINKET_ASSETS, trinketTextureKey } from "../assets";
 import { GAME_FONT_FAMILY } from "../config/typography";
 
 export class TrinketConveyor extends Phaser.GameObjects.Container {
-  private readonly slotContents: Phaser.GameObjects.GameObject[] = [];
+  private readonly slotContents: Phaser.GameObjects.Image[] = [];
+  private readonly slotIconLayer: Phaser.GameObjects.Container;
+  private readonly slotMaskShape: Phaser.GameObjects.Graphics;
+  private readonly slotMask: Phaser.Display.Masks.GeometryMask;
   private readonly tooltip: Phaser.GameObjects.Text;
   private onActivate: (id: TrinketId) => void = () => undefined;
 
@@ -31,6 +34,23 @@ export class TrinketConveyor extends Phaser.GameObjects.Container {
       this.drawPlaceholder(scene);
     }
 
+    this.slotIconLayer = scene.add.container(0, 0);
+    this.add(this.slotIconLayer);
+    this.slotMaskShape = scene.make.graphics({ x, y });
+    this.slotMaskShape.fillStyle(0xffffff);
+    for (const center of TRINKET_ASSETS.slot.centers) {
+      const halfSlot = TRINKET_ASSETS.slot.size / 2;
+      this.slotMaskShape.fillRoundedRect(
+        center.x - halfSlot,
+        center.y - halfSlot,
+        TRINKET_ASSETS.slot.size,
+        TRINKET_ASSETS.slot.size,
+        8
+      );
+    }
+    this.slotMask = this.slotMaskShape.createGeometryMask();
+    this.slotIconLayer.setMask(this.slotMask);
+
     this.addSlotLabels(scene);
     this.tooltip = scene.add
       .text(172, 8, "", {
@@ -44,6 +64,11 @@ export class TrinketConveyor extends Phaser.GameObjects.Container {
       .setVisible(false)
       .setDepth(100);
     this.add(this.tooltip);
+
+    this.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.slotMask.destroy();
+      this.slotMaskShape.destroy();
+    });
   }
 
   setSlots(slots: TrinketSlots, onActivate: (id: TrinketId) => void): void {
@@ -70,7 +95,40 @@ export class TrinketConveyor extends Phaser.GameObjects.Container {
       icon.on("pointerout", () => this.tooltip.setVisible(false));
       icon.on("pointerdown", () => this.onActivate(trinketId));
       this.slotContents.push(icon);
-      this.add(icon);
+      this.slotIconLayer.add(icon);
+    });
+  }
+
+  animateAging(slots: TrinketSlots, onActivate: (id: TrinketId) => void): Promise<void> {
+    this.onActivate = onActivate;
+    this.tooltip.setVisible(false);
+    for (const icon of this.slotContents) icon.disableInteractive();
+
+    if (this.slotContents.length === 0) {
+      this.setSlots(slots, onActivate);
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      let finished = false;
+      const finish = (renderFinalSlots: boolean): void => {
+        if (finished) return;
+        finished = true;
+        this.scene.events.off(Phaser.Scenes.Events.SHUTDOWN, abort);
+        if (renderFinalSlots && this.active && this.scene.sys.isActive()) {
+          this.setSlots(slots, onActivate);
+        }
+        resolve();
+      };
+      const abort = (): void => finish(false);
+      this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, abort);
+      this.scene.tweens.add({
+        targets: this.slotContents,
+        y: `+=${TRINKET_ASSETS.slot.centers[1].y - TRINKET_ASSETS.slot.centers[0].y}`,
+        duration: TRINKET_ASSETS.transitionDurationMs,
+        ease: "Sine.easeInOut",
+        onComplete: () => finish(true)
+      });
     });
   }
 

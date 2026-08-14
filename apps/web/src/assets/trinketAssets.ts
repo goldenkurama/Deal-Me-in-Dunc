@@ -51,7 +51,8 @@ export const TRINKET_ASSETS = Object.freeze({
   },
   trinket: {
     displaySize: 48
-  }
+  },
+  transitionDurationMs: 420
 });
 
 export function trinketTextureKey(id: TrinketId): string {

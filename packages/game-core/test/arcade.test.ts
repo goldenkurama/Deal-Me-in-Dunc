@@ -10,7 +10,9 @@ import {
   offerTrinkets,
   lowestCardIndex,
   resolveRubberBandBust,
-  resolveArcadeOutcome
+  resolveArcadeOutcome,
+  resolveFiveFingerDiscount,
+  shouldArcadeDealerHit
 } from "../src/index.js";
 import type { Card, TrinketSlots } from "../src/index.js";
 
@@ -43,6 +45,18 @@ describe("arcade scoring", () => {
     expect(calculateArcadeHandValue([card("10"), card("8")], rules).busted).toBe(true);
   });
 
+  it("uses Trinket-aware dealer stand rules", () => {
+    const value = (total: number) => ({ total, soft: false, busted: false });
+
+    expect(shouldArcadeDealerHit(value(16))).toBe(true);
+    expect(shouldArcadeDealerHit(value(17))).toBe(false);
+    expect(shouldArcadeDealerHit(value(13), { ...BASE_ARCADE_SCORING_RULES, target: 17 })).toBe(true);
+    expect(shouldArcadeDealerHit(value(14), { ...BASE_ARCADE_SCORING_RULES, target: 17 })).toBe(false);
+    expect(shouldArcadeDealerHit(value(14), { ...BASE_ARCADE_SCORING_RULES, target: 17 }, false, true)).toBe(false);
+    expect(shouldArcadeDealerHit(value(5), BASE_ARCADE_SCORING_RULES, true)).toBe(false);
+    expect(shouldArcadeDealerHit(value(20), BASE_ARCADE_SCORING_RULES, false, true)).toBe(true);
+  });
+
   it("supports Broken Calculator and Two-Card Monte face values", () => {
     const value = calculateArcadeHandValue(
       [card("3"), card("8"), card("K")],
@@ -55,6 +69,18 @@ describe("arcade scoring", () => {
     expect(compareCardValues(card("6"), card("9"))).toBe("higher");
     expect(compareCardValues(card("K"), card("Q"))).toBe("equal");
     expect(lowestCardIndex([card("9"), card("2"), card("5")])).toBe(1);
+  });
+
+  it("steals the lowest pre-Hit card before the new card is received", () => {
+    const result = resolveFiveFingerDiscount(
+      [card("9"), card("8")],
+      [card("10")]
+    );
+    const incomingHitCard = card("2");
+
+    expect(result.stolenCard).toEqual(card("8"));
+    expect([...result.playerHand, incomingHitCard]).toEqual([card("9"), card("2")]);
+    expect(result.dealerHand).toEqual([card("10"), card("8")]);
   });
 
   it("flings the busting card into the dealer hand for Rubber Band", () => {

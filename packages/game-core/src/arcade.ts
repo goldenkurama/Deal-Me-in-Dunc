@@ -42,7 +42,7 @@ export interface TrinketDefinition {
 }
 
 export const TRINKETS: readonly TrinketDefinition[] = Object.freeze([
-  { id: "golf-scoring-card", name: "Golf Scoring Card", description: "The lower non-busted total wins.", interaction: "passive" },
+  { id: "golf-scoring-card", name: "Golf Scoring Card", description: "The lower non-busted total wins. Duncan does not Hit.", interaction: "passive" },
   { id: "record", name: "Record", description: "Flip between a face-card win bonus and a no-face-card win bonus.", interaction: "click" },
   { id: "sunglasses", name: "Sunglasses", description: "One of your cards is hidden. Winning profit is tripled.", interaction: "passive" },
   { id: "trading-card", name: "Trading Card", description: "Draw a separate comparison card, then predict whether your next Hit is higher or lower for a +1x win bonus.", interaction: "click" },
@@ -56,7 +56,7 @@ export const TRINKETS: readonly TrinketDefinition[] = Object.freeze([
   { id: "dice", name: "Dice", description: "Once per hand, roll two dice and add or subtract one from your total.", interaction: "click" },
   { id: "punch-card", name: "Punch Card", description: "Every Hit adds +0.5x to winning profit.", interaction: "passive" },
   { id: "magic-8-ball", name: "Magic 8 Ball", description: "Follow its Hit-or-Stand advice for a +0.5x win bonus.", interaction: "click" },
-  { id: "issue-17", name: "Issue 17", description: "Seventeen replaces 21 for Blackjack and busting.", interaction: "passive" },
+  { id: "issue-17", name: "Issue 17", description: "Seventeen replaces 21 for Blackjack and busting. Duncan stands on 14.", interaction: "passive" },
   { id: "hall-pass", name: "Hall Pass", description: "Once per hand, discard one visible card.", interaction: "click" },
   { id: "booster-pack", name: "Booster Pack", description: "At the opening deal, look at three cards and keep two.", interaction: "passive" },
   { id: "broken-calculator", name: "Broken Calculator", description: "Number cards are worth their distance from 10; a 10 is worth zero.", interaction: "passive" }
@@ -185,6 +185,17 @@ export function calculateArcadeHandValue(
   };
 }
 
+export function shouldArcadeDealerHit(
+  dealerValue: HandValue,
+  rules: ArcadeScoringRules = BASE_ARCADE_SCORING_RULES,
+  golfScoring = false,
+  forcedHits = false
+): boolean {
+  if (dealerValue.busted || golfScoring) return false;
+  if (rules.target === 17) return dealerValue.total < 14;
+  return forcedHits || dealerValue.total < 17;
+}
+
 export function isArcadeBlackjack(
   cards: readonly Card[],
   value: HandValue,
@@ -302,6 +313,31 @@ export function lowestCardIndex(
     }
   });
   return lowestIndex;
+}
+
+export interface FiveFingerDiscountResult {
+  readonly playerHand: readonly Card[];
+  readonly dealerHand: readonly Card[];
+  readonly stolenCard: Card | null;
+}
+
+export function resolveFiveFingerDiscount(
+  playerHandBeforeHit: readonly Card[],
+  dealerHand: readonly Card[],
+  rules: ArcadeScoringRules = BASE_ARCADE_SCORING_RULES
+): FiveFingerDiscountResult {
+  const nextPlayerHand = [...playerHandBeforeHit];
+  const lowestIndex = lowestCardIndex(nextPlayerHand, rules);
+  if (lowestIndex === null) {
+    return { playerHand: nextPlayerHand, dealerHand: [...dealerHand], stolenCard: null };
+  }
+
+  const [stolenCard = null] = nextPlayerHand.splice(lowestIndex, 1);
+  return {
+    playerHand: nextPlayerHand,
+    dealerHand: stolenCard ? [...dealerHand, stolenCard] : [...dealerHand],
+    stolenCard
+  };
 }
 
 export interface ArcadePayout {

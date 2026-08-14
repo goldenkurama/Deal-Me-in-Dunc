@@ -18,10 +18,11 @@ import {
   insertSelectedTrinket,
   isArcadeBlackjack,
   offerTrinkets,
-  lowestCardIndex,
   deriveArcadeScoringRules,
   resolveArcadeOutcome,
+  resolveFiveFingerDiscount,
   resolveRubberBandBust,
+  shouldArcadeDealerHit,
   shuffleDeck,
   type ActiveHouseRule,
   type ArcadePayout,
@@ -534,6 +535,7 @@ export class TableScene extends Phaser.Scene {
   private performPlayerHit(): boolean {
     if (this.playerValue().total >= 18) this.hitAtEighteenOrHigher = true;
     this.resolveMagicAdvice("hit");
+    const fiveFingerStolenCard = this.applyFiveFingerDiscount();
 
     const drawn = this.nextPlayerHitCard();
     this.playerHand.push(drawn);
@@ -543,7 +545,9 @@ export class TableScene extends Phaser.Scene {
     }
 
     this.resolveTradingPrediction(drawn);
-    this.applyFiveFingerDiscount();
+    if (fiveFingerStolenCard) {
+      this.statusText.setText("FIVE FINGER DISCOUNT: DUNCAN STOLE YOUR LOWEST CARD BEFORE THE HIT.");
+    }
     this.refreshHandCards(false);
     return this.handlePlayerTerminal();
   }
@@ -557,14 +561,13 @@ export class TableScene extends Phaser.Scene {
     this.tradingComparison = null;
   }
 
-  private applyFiveFingerDiscount(): void {
-    if (!this.hasHouseRule("five-finger-discount") || this.fiveFingerUsed || this.playerHand.length === 0) return;
+  private applyFiveFingerDiscount(): Card | null {
+    if (!this.hasHouseRule("five-finger-discount") || this.fiveFingerUsed || this.playerHand.length === 0) return null;
     this.fiveFingerUsed = true;
-    const lowestIndex = lowestCardIndex(this.playerHand, this.scoringRules());
-    if (lowestIndex === null) return;
-    const [stolen] = this.playerHand.splice(lowestIndex, 1);
-    if (stolen) this.dealerHand.push(stolen);
-    this.statusText.setText("FIVE FINGER DISCOUNT: DUNCAN STOLE YOUR LOWEST CARD.");
+    const result = resolveFiveFingerDiscount(this.playerHand, this.dealerHand, this.scoringRules());
+    this.playerHand = [...result.playerHand];
+    this.dealerHand = [...result.dealerHand];
+    return result.stolenCard;
   }
 
   private handlePlayerTerminal(): boolean {
@@ -614,13 +617,22 @@ export class TableScene extends Phaser.Scene {
 
   private playDealerHand(): void {
     let drawsRemaining = this.deck.length;
-    while (this.dealerValue().total < 17 && drawsRemaining > 0) {
+    while (this.shouldDealerHit() && drawsRemaining > 0) {
       this.dealerHand.push(this.takeCard());
       if (this.hasHouseRule("two-card-monte") && this.dealerHand.length > 2) {
         this.dealerHand.shift();
       }
       drawsRemaining -= 1;
     }
+  }
+
+  private shouldDealerHit(forcedHits = false): boolean {
+    return shouldArcadeDealerHit(
+      this.dealerValue(),
+      this.scoringRules(),
+      this.hasTrinket("golf-scoring-card"),
+      forcedHits
+    );
   }
 
   private currentPlayerBlackjack(): boolean {
@@ -731,6 +743,8 @@ export class TableScene extends Phaser.Scene {
 
     const aged = ageTrinketConveyor(this.trinkets);
     this.trinkets = aged.slots;
+    await this.conveyor.animateAging(this.trinkets, (id) => void this.useTrinket(id));
+    if (!this.scene.isActive()) return;
     const ruleAdvance = advanceHouseRuleAfterHand(
       this.houseRule,
       (expiredId) => chooseHouseRule(expiredId).id
@@ -743,7 +757,6 @@ export class TableScene extends Phaser.Scene {
       this.refreshHouseRule();
     }
     if (!this.hasTrinket("record")) this.recordMode = "face";
-    this.conveyor.setSlots(this.trinkets, (id) => void this.useTrinket(id));
 
     this.phase = "selecting";
     const selected = await this.chooseTrinketOffer(offerTrinkets(this.trinkets));
@@ -843,10 +856,18 @@ export class TableScene extends Phaser.Scene {
       if (this.performPlayerHit()) break;
       await this.delay(450);
       if (this.phase !== "playing") break;
+      if (!this.shouldDealerHit(true)) {
+        void this.finishResolvedHand();
+        break;
+      }
       this.dealerHand.push(this.takeCard());
       if (this.hasHouseRule("two-card-monte") && this.dealerHand.length > 2) this.dealerHand.shift();
       this.refreshHandCards(false);
       if (this.dealerValue().busted) {
+        void this.finishResolvedHand();
+        break;
+      }
+      if (!this.shouldDealerHit(true)) {
         void this.finishResolvedHand();
         break;
       }
