@@ -3,32 +3,40 @@ import type { PublicUser } from "@fox-blackjack/shared-types";
 import {
   EMPTY_TRINKET_SLOTS,
   ageTrinketConveyor,
+  arcadeCardValue,
   advanceHouseRuleAfterHand,
   calculateArcadeHandValue,
   calculateArcadePayout,
   calculateProfitMultiplier,
+  chooseDeckOfManyEffect,
+  createWeightedDeckOrder,
   cardKey,
   chooseHouseRule,
   compareCardValues,
   createDeck,
-  dealOpeningHands,
   drawCard,
   getHouseRule,
   getTrinket,
   insertSelectedTrinket,
   isArcadeBlackjack,
   offerTrinkets,
+  maxxedOutCreditMultiplier,
+  randomizeOccupiedTrinkets,
+  replaceSlotTwoTrinket,
   deriveArcadeScoringRules,
   resolveArcadeOutcome,
   resolveFiveFingerDiscount,
   resolveRubberBandBust,
   shouldArcadeDealerHit,
   shuffleDeck,
+  splitArcadeCard,
   type ActiveHouseRule,
   type ArcadePayout,
   type ArcadeScoringRules,
   type Card,
+  type DeckOfManyEffect,
   type HandOutcome,
+  type Suit,
   type TrinketDefinition,
   type TrinketId,
   type TrinketSlots
@@ -79,6 +87,7 @@ export class TableScene extends Phaser.Scene {
   private deck: Card[] = [];
   private playerHand: Card[] = [];
   private dealerHand: Card[] = [];
+  private sharedCard: Card | null = null;
   private phase: TablePhase = "betting";
 
   private statusText!: Phaser.GameObjects.Text;
@@ -94,6 +103,7 @@ export class TableScene extends Phaser.Scene {
   private betButton!: Phaser.GameObjects.Text;
   private increaseBetButton!: Phaser.GameObjects.Text;
   private renderedCards: Phaser.GameObjects.Image[] = [];
+  private sharedCardLabel: Phaser.GameObjects.Text | null = null;
   private modalObjects: Phaser.GameObjects.GameObject[] = [];
 
   private chips = 100;
@@ -101,6 +111,7 @@ export class TableScene extends Phaser.Scene {
   private selectedBet = MINIMUM_BET;
   private activeWager = 0;
   private activeStake = 0;
+  private balanceBeforeBet = 0;
   private activeHandId = "";
   private completedHands = 0;
   private consecutiveLosses = 0;
@@ -121,12 +132,25 @@ export class TableScene extends Phaser.Scene {
   private tradingPrediction: Prediction | null = null;
   private correctTradingPredictions = 0;
   private fiveFingerUsed = false;
+  private safetyScissorsUsed = false;
+  private universalRemoteUsed = false;
+  private swapMeetUsed = false;
+  private dryCleaningTicketUsed = false;
+  private returnReceiptUsed = false;
+  private halfOffUsed = false;
+  private bookmarkUsed = false;
+  private doOverUsed = false;
+  private twoForOneUsed = false;
+  private charityCaseUsed = false;
+  private cowardTaxApplied = false;
   private chickenActive = false;
   private hiddenPlayerCardIndex: number | null = null;
   private pendingTimeCapsuleCard: Card | null = null;
   private timeCapsuleHitCard: Card | null = null;
   private forcedOutcome: HandOutcome | null = null;
   private handResolutionNote = "";
+  private deckOfManyEffect: DeckOfManyEffect | null = null;
+  private dryCleaningTagSuit: Suit | null = null;
 
   constructor() {
     super("TableScene");
@@ -244,10 +268,12 @@ export class TableScene extends Phaser.Scene {
     this.deck = [];
     this.playerHand = [];
     this.dealerHand = [];
+    this.sharedCard = null;
     this.phase = "betting";
     this.selectedBet = MINIMUM_BET;
     this.activeWager = 0;
     this.activeStake = 0;
+    this.balanceBeforeBet = 0;
     this.activeHandId = "";
     this.completedHands = 0;
     this.consecutiveLosses = 0;
@@ -255,7 +281,10 @@ export class TableScene extends Phaser.Scene {
     this.recordMode = "face";
     this.pendingTimeCapsuleCard = null;
     this.timeCapsuleHitCard = null;
+    this.deckOfManyEffect = null;
+    this.dryCleaningTagSuit = null;
     this.renderedCards = [];
+    this.sharedCardLabel = null;
     this.modalObjects = [];
     this.resetHandEffects();
   }
@@ -386,20 +415,24 @@ export class TableScene extends Phaser.Scene {
   private scoringRules(): ArcadeScoringRules {
     return deriveArcadeScoringRules(
       this.trinkets.flatMap((slot) => slot ? [slot.id] : []),
-      this.houseRule.id
+      this.houseRule.id,
+      this.deckOfManyEffect === "tower"
     );
   }
 
   private playerValue() {
     return calculateArcadeHandValue(
-      this.playerHand,
+      this.sharedCard ? [...this.playerHand, this.sharedCard] : this.playerHand,
       this.scoringRules(),
       this.playerTotalAdjustment
     );
   }
 
   private dealerValue() {
-    return calculateArcadeHandValue(this.dealerHand, this.scoringRules());
+    return calculateArcadeHandValue(
+      this.sharedCard ? [...this.dealerHand, this.sharedCard] : this.dealerHand,
+      this.scoringRules()
+    );
   }
 
   private maximumAvailableBet(): number {
@@ -431,8 +464,22 @@ export class TableScene extends Phaser.Scene {
     if (this.phase !== "betting") return;
 
     const freeHand = this.hasHouseRule("all-bets-are-off");
+    if (this.hasTrinket("deck-of-many-bs-things") && !this.deckOfManyEffect) {
+      this.deckOfManyEffect = chooseDeckOfManyEffect();
+      const labels: Record<DeckOfManyEffect, string> = {
+        fool: "THE FOOL: ONE OF YOUR CARDS WILL BE OBSCURED.",
+        tower: "THE TOWER: BLACK +1, RED -1.",
+        world: "THE WORLD: WINNING PROFIT IS TRIPLED."
+      };
+      this.statusText.setText(`DECK OF MANY BS THINGS - ${labels[this.deckOfManyEffect]}`);
+      return;
+    }
     if (this.hasTrinket("piggy-bank") && !this.piggyChoice && !freeHand) {
       await this.choosePiggyMode();
+      return;
+    }
+    if (this.hasTrinket("dry-cleaning-tag") && !this.dryCleaningTagSuit) {
+      await this.chooseDryCleaningTagSuit();
       return;
     }
 
@@ -446,6 +493,7 @@ export class TableScene extends Phaser.Scene {
     this.selectedBet = freeHand ? 10 : Phaser.Math.Clamp(this.selectedBet, minimum, maximum);
     this.activeWager = this.selectedBet;
     this.activeStake = freeHand ? 0 : this.selectedBet;
+    this.balanceBeforeBet = this.chips;
     this.activeHandId = crypto.randomUUID();
     this.chips -= this.activeStake;
     this.resetHandEffects();
@@ -453,7 +501,14 @@ export class TableScene extends Phaser.Scene {
     this.refreshBalances();
     this.hideAllActionControls();
 
+    if (this.hasHouseRule("finders-keepers")) {
+      this.trinkets = replaceSlotTwoTrinket(this.trinkets);
+      this.conveyor.setSlots(this.trinkets, (id) => void this.useTrinket(id));
+      this.syncTrinketState();
+    }
+
     let shuffledDeck = shuffleDeck(createDeck());
+    if (this.hasTrinket("loaded-shoe")) shuffledDeck = createWeightedDeckOrder(shuffledDeck);
     this.timeCapsuleHitCard = this.pendingTimeCapsuleCard;
     this.pendingTimeCapsuleCard = null;
     if (this.timeCapsuleHitCard) {
@@ -462,12 +517,20 @@ export class TableScene extends Phaser.Scene {
       if (storedIndex >= 0) shuffledDeck.splice(storedIndex, 1);
     }
 
-    const openingDeal = dealOpeningHands(shuffledDeck);
-    this.playerHand = openingDeal.playerHand;
-    this.dealerHand = openingDeal.dealerHand;
-    this.deck = openingDeal.remainingDeck;
+    this.deck = shuffledDeck;
+    this.sharedCard = null;
+    if (this.hasHouseRule("shared-custody")) {
+      this.playerHand = [this.takeCard()];
+      this.dealerHand = [this.takeCard()];
+      this.sharedCard = this.takeCard();
+    } else {
+      this.playerHand = [this.takeCard()];
+      this.dealerHand = [this.takeCard()];
+      this.playerHand.push(this.takeCard());
+      this.dealerHand.push(this.takeCard());
+    }
 
-    if (this.hasTrinket("booster-pack")) {
+    if (this.hasTrinket("booster-pack") && !this.hasHouseRule("shared-custody")) {
       const extra = this.takeCard();
       this.playerHand = [...this.playerHand, extra];
       this.refreshHandCards(false, true);
@@ -476,7 +539,7 @@ export class TableScene extends Phaser.Scene {
       this.playerHand = kept;
     }
 
-    if (this.hasTrinket("sunglasses")) {
+    if (this.hasTrinket("sunglasses") || this.deckOfManyEffect === "fool") {
       this.hiddenPlayerCardIndex = Math.floor(Math.random() * this.playerHand.length);
     }
 
@@ -505,6 +568,17 @@ export class TableScene extends Phaser.Scene {
     this.tradingPrediction = null;
     this.correctTradingPredictions = 0;
     this.fiveFingerUsed = false;
+    this.safetyScissorsUsed = false;
+    this.universalRemoteUsed = false;
+    this.swapMeetUsed = false;
+    this.dryCleaningTicketUsed = false;
+    this.returnReceiptUsed = false;
+    this.halfOffUsed = false;
+    this.bookmarkUsed = false;
+    this.doOverUsed = false;
+    this.twoForOneUsed = false;
+    this.charityCaseUsed = false;
+    this.cowardTaxApplied = false;
     this.chickenActive = false;
     this.hiddenPlayerCardIndex = null;
     this.forcedOutcome = null;
@@ -529,24 +603,65 @@ export class TableScene extends Phaser.Scene {
 
   private hit(): void {
     if (this.phase !== "playing" || this.chickenActive) return;
-    this.performPlayerHit();
+    void this.performPlayerHit();
   }
 
-  private performPlayerHit(): boolean {
+  private async performPlayerHit(): Promise<boolean> {
+    const binderWasFull = this.hasTrinket("three-ring-binder") && this.playerHand.length >= 3;
     if (this.playerValue().total >= 18) this.hitAtEighteenOrHigher = true;
     this.resolveMagicAdvice("hit");
     const fiveFingerStolenCard = this.applyFiveFingerDiscount();
 
-    const drawn = this.nextPlayerHitCard();
+    let drawn: Card;
+    let actionNote = "";
+    const firstTwoForOneHit = this.hasTrinket("two-for-one-coupon") && !this.twoForOneUsed;
+    if (firstTwoForOneHit) this.twoForOneUsed = true;
+    if (this.hasHouseRule("charity-case") && !this.charityCaseUsed && this.dealerHand.length > 0) {
+      this.charityCaseUsed = true;
+      const index = Phaser.Math.Between(0, this.dealerHand.length - 1);
+      const donated = this.dealerHand.splice(index, 1)[0];
+      if (!donated) return false;
+      drawn = donated;
+      actionNote = `CHARITY CASE: DUNCAN GAVE YOU ${this.cardLabel(drawn)}.`;
+    } else if (firstTwoForOneHit) {
+      const choices = [this.nextPlayerHitCard(), this.nextPlayerHitCard()] as const;
+      const selected = await this.askOptions("TWO-FOR-ONE: KEEP WHICH CARD?", choices.map((card, index) => ({
+        value: String(index),
+        label: this.cardLabel(card),
+        fontFamily: GAME_NUMBER_FONT_FAMILY
+      })));
+      if (!this.scene.isActive() || this.phase !== "playing") return false;
+      const selectedIndex = selected === "1" ? 1 : 0;
+      drawn = choices[selectedIndex];
+      actionNote = `TWO-FOR-ONE KEPT ${this.cardLabel(drawn)}.`;
+    } else {
+      drawn = this.nextPlayerHitCard();
+    }
     this.playerHand.push(drawn);
     this.hitCount += 1;
     if (this.hasHouseRule("two-card-monte") && this.playerHand.length > 2) {
       this.playerHand.shift();
+    } else if (binderWasFull && this.playerHand.length > 3) {
+      this.playerHand.shift();
+    }
+    if (this.hasHouseRule("musical-chairs") && this.playerHand.length > 0 && this.dealerHand.length > 0) {
+      const playerIndex = Phaser.Math.Between(0, this.playerHand.length - 1);
+      const dealerIndex = Phaser.Math.Between(0, this.dealerHand.length - 1);
+      const playerCard = this.playerHand[playerIndex];
+      const dealerCard = this.dealerHand[dealerIndex];
+      if (playerCard && dealerCard) {
+        this.playerHand[playerIndex] = dealerCard;
+        this.dealerHand[dealerIndex] = playerCard;
+        actionNote = "MUSICAL CHAIRS SWAPPED ONE CARD FROM EACH HAND.";
+      }
     }
 
+    this.syncTrinketState();
     this.resolveTradingPrediction(drawn);
     if (fiveFingerStolenCard) {
       this.statusText.setText("FIVE FINGER DISCOUNT: DUNCAN STOLE YOUR LOWEST CARD.");
+    } else if (actionNote) {
+      this.statusText.setText(actionNote);
     }
     this.refreshHandCards(false);
     return this.handlePlayerTerminal();
@@ -610,9 +725,53 @@ export class TableScene extends Phaser.Scene {
   private stand(): void {
     if (this.phase !== "playing" || this.chickenActive) return;
     this.resolveMagicAdvice("stand");
+    this.cowardTaxApplied = this.hasHouseRule("coward-tax") && this.playerValue().total <= 16;
     if (this.hasHouseRule("cheap-trick")) this.playerTotalAdjustment -= 1;
+    if (this.hasHouseRule("open-hand-night")) this.discardOpenHandCard();
     this.playDealerHand();
     void this.finishResolvedHand();
+  }
+
+  private discardOpenHandCard(): void {
+    if (this.dealerHand.length === 0) return;
+    const rules = this.scoringRules();
+    if (this.hasTrinket("golf-scoring-card")) {
+      let highestIndex = 0;
+      this.dealerHand.forEach((card, index) => {
+        if (arcadeCardValue(card, rules) > arcadeCardValue(this.dealerHand[highestIndex] as Card, rules)) highestIndex = index;
+      });
+      this.dealerHand.splice(highestIndex, 1);
+      this.statusText.setText("OPEN HAND NIGHT: DUNCAN DISCARDED HIS HIGHEST CARD.");
+      return;
+    }
+
+    const finalValue = (starting: readonly Card[]): number => {
+      const hand = [...starting];
+      const deck = [...this.deck];
+      while (deck.length > 0) {
+        const value = calculateArcadeHandValue(this.sharedCard ? [...hand, this.sharedCard] : hand, rules);
+        if (!shouldArcadeDealerHit(value, rules, false)) return value.busted ? -1 : value.total;
+        const next = deck.shift();
+        if (next) hand.push(next);
+      }
+      const value = calculateArcadeHandValue(this.sharedCard ? [...hand, this.sharedCard] : hand, rules);
+      return value.busted ? -1 : value.total;
+    };
+    const baseline = finalValue(this.dealerHand);
+    let bestIndex: number | null = null;
+    let bestValue = baseline;
+    this.dealerHand.forEach((_, index) => {
+      const candidate = this.dealerHand.filter((__, candidateIndex) => candidateIndex !== index);
+      const value = finalValue(candidate);
+      if (value > bestValue) {
+        bestValue = value;
+        bestIndex = index;
+      }
+    });
+    if (bestIndex !== null) {
+      this.dealerHand.splice(bestIndex, 1);
+      this.statusText.setText("OPEN HAND NIGHT: DUNCAN DISCARDED A CARD BEFORE HITTING.");
+    }
   }
 
   private playDealerHand(): void {
@@ -636,8 +795,9 @@ export class TableScene extends Phaser.Scene {
   }
 
   private currentPlayerBlackjack(): boolean {
+    const cards = this.sharedCard ? [...this.playerHand, this.sharedCard] : this.playerHand;
     return isArcadeBlackjack(
-      this.playerHand,
+      cards,
       this.playerValue(),
       this.scoringRules(),
       this.hasTrinket("gameshark")
@@ -645,8 +805,9 @@ export class TableScene extends Phaser.Scene {
   }
 
   private currentDealerBlackjack(): boolean {
+    const cards = this.sharedCard ? [...this.dealerHand, this.sharedCard] : this.dealerHand;
     return isArcadeBlackjack(
-      this.dealerHand,
+      cards,
       this.dealerValue(),
       this.scoringRules(),
       false
@@ -655,13 +816,19 @@ export class TableScene extends Phaser.Scene {
 
   private resolveCurrentOutcome(): HandOutcome {
     if (this.forcedOutcome) return this.forcedOutcome;
-    return resolveArcadeOutcome({
+    const outcome = resolveArcadeOutcome({
       playerValue: this.playerValue(),
       dealerValue: this.dealerValue(),
       playerBlackjack: this.currentPlayerBlackjack(),
       dealerBlackjack: this.currentDealerBlackjack(),
       golfScoring: this.hasTrinket("golf-scoring-card")
     });
+    if (
+      this.hasTrinket("participation-trophy") &&
+      (outcome === "player-win" || outcome === "player-blackjack") &&
+      this.playerValue().total >= 20
+    ) return "dealer-win";
+    return outcome;
   }
 
   private positiveProfitMultiplier(): number {
@@ -672,7 +839,7 @@ export class TableScene extends Phaser.Scene {
         recordBonus = true;
       }
     }
-    return calculateProfitMultiplier({
+    let multiplier = calculateProfitMultiplier({
       punchCardHits: this.hasTrinket("punch-card") ? this.hitCount : 0,
       followedMagic8BallCount: this.followedMagicAdviceCount,
       correctTradingPredictions: this.correctTradingPredictions,
@@ -681,6 +848,19 @@ export class TableScene extends Phaser.Scene {
       piggyBankSmash: !this.hasHouseRule("all-bets-are-off") && this.piggyChoice === "smash",
       bandAidUsed: this.bandAidUsed
     });
+    if (this.deckOfManyEffect === "world") multiplier *= 3;
+    if (this.hasTrinket("participation-trophy") && this.playerValue().total <= 19) multiplier *= 2;
+    if (this.hasTrinket("maxxed-out-credit-card") && !this.hasHouseRule("all-bets-are-off")) {
+      multiplier *= maxxedOutCreditMultiplier(this.activeWager, this.balanceBeforeBet);
+    }
+    if (this.hasTrinket("cash-only-coupon")) multiplier *= 3;
+    const effectivePlayerCards = this.sharedCard ? [...this.playerHand, this.sharedCard] : this.playerHand;
+    if (this.hasTrinket("dry-cleaning-tag") && this.dryCleaningTagSuit && effectivePlayerCards.some(({ suit }) => suit === this.dryCleaningTagSuit)) {
+      multiplier *= 2;
+    }
+    if (this.hasTrinket("express-lane-sign") && effectivePlayerCards.length <= 3) multiplier *= 1.5;
+    if (this.cowardTaxApplied) multiplier *= 0.5;
+    return multiplier;
   }
 
   private async finishResolvedHand(): Promise<void> {
@@ -696,7 +876,8 @@ export class TableScene extends Phaser.Scene {
       chipsStaked: this.activeStake,
       positiveProfitMultiplier: this.positiveProfitMultiplier(),
       lossRefundFraction:
-        !this.hasHouseRule("all-bets-are-off") && this.piggyChoice === "save" ? 0.5 : 0
+        !this.hasHouseRule("all-bets-are-off") && this.piggyChoice === "save" ? 0.5 : 0,
+      dunkaroosPerPositiveChipProfit: this.hasTrinket("cash-only-coupon") ? 0 : 1
     });
     const resultMessage = `${this.handResolutionNote ? `${this.handResolutionNote} ` : ""}${this.describeOutcome(outcome)} ${this.rewardText(payout)}`;
     this.refreshHandCards(true, true);
@@ -743,6 +924,7 @@ export class TableScene extends Phaser.Scene {
 
     const aged = ageTrinketConveyor(this.trinkets);
     this.trinkets = aged.slots;
+    this.syncTrinketState();
     await this.conveyor.animateAging(this.trinkets, (id) => void this.useTrinket(id));
     if (!this.scene.isActive()) return;
     const ruleAdvance = advanceHouseRuleAfterHand(
@@ -756,14 +938,14 @@ export class TableScene extends Phaser.Scene {
       this.houseRule = ruleAdvance.houseRule;
       this.refreshHouseRule();
     }
-    if (!this.hasTrinket("record")) this.recordMode = "face";
-
     this.phase = "selecting";
     const selected = await this.chooseTrinketOffer(offerTrinkets(this.trinkets));
     if (!selected || !this.scene.isActive()) return;
     this.trinkets = insertSelectedTrinket(this.trinkets, { id: selected.id });
     this.conveyor.setSlots(this.trinkets, (id) => void this.useTrinket(id));
     this.piggyChoice = null;
+    this.deckOfManyEffect = null;
+    this.dryCleaningTagSuit = null;
     this.enterBettingState(resultMessage);
   }
 
@@ -777,6 +959,25 @@ export class TableScene extends Phaser.Scene {
 
     if (id === "piggy-bank") {
       if (this.phase === "betting") await this.choosePiggyMode();
+      return;
+    }
+    if (id === "deck-of-many-bs-things") {
+      this.statusText.setText(this.deckOfManyEffect
+        ? `DECK EFFECT: ${this.deckOfManyEffect.toUpperCase()}.`
+        : "THE DECK WILL DRAW AN EFFECT BEFORE YOU BET.");
+      return;
+    }
+    if (id === "dry-cleaning-tag") {
+      if (this.phase === "betting") await this.chooseDryCleaningTagSuit();
+      return;
+    }
+    if (id === "junk-drawer") {
+      this.trinkets = randomizeOccupiedTrinkets(this.trinkets);
+      this.conveyor.setSlots(this.trinkets, (nextId) => void this.useTrinket(nextId));
+      this.syncTrinketState();
+      this.statusText.setText("JUNK DRAWER: EVERY OCCUPIED SLOT WAS RANDOMIZED.");
+      this.refreshHandCards(false);
+      this.refreshBetControls();
       return;
     }
     if (this.phase !== "playing" || this.chickenActive) return;
@@ -807,7 +1008,226 @@ export class TableScene extends Phaser.Scene {
       case "hall-pass":
         await this.useHallPass();
         break;
+      case "safety-scissors":
+        await this.useSafetyScissors();
+        break;
+      case "universal-remote":
+        await this.useUniversalRemote();
+        break;
+      case "swap-meet-ticket":
+        this.useSwapMeetTicket();
+        break;
+      case "dry-cleaning-ticket":
+        await this.useDryCleaningTicket();
+        break;
+      case "return-receipt":
+        await this.useReturnReceipt();
+        break;
+      case "half-off-coupon":
+        await this.useHalfOffCoupon();
+        break;
+      case "bookmark":
+        this.useBookmark();
+        break;
+      case "do-over-token":
+        this.useDoOverToken();
+        break;
     }
+  }
+
+  private syncTrinketState(): void {
+    if (!this.hasTrinket("record")) this.recordMode = "face";
+    if (!this.hasTrinket("deck-of-many-bs-things")) this.deckOfManyEffect = null;
+    if (!this.hasTrinket("dry-cleaning-tag")) this.dryCleaningTagSuit = null;
+    if (!this.hasTrinket("sunglasses") && this.deckOfManyEffect !== "fool") {
+      this.hiddenPlayerCardIndex = null;
+    } else if (
+      this.phase === "playing" &&
+      (this.hiddenPlayerCardIndex === null || this.hiddenPlayerCardIndex >= this.playerHand.length) &&
+      this.playerHand.length > 0
+    ) {
+      this.hiddenPlayerCardIndex = Math.floor(Math.random() * this.playerHand.length);
+    }
+  }
+
+  private async chooseDryCleaningTagSuit(): Promise<void> {
+    const suit = await this.chooseSuit("DRY CLEANING TAG: DECLARE A SUIT");
+    if (!suit) return;
+    this.dryCleaningTagSuit = suit;
+    this.enterBettingState(`DRY CLEANING TAG: ${suit.toUpperCase()} DECLARED.`);
+  }
+
+  private async useSafetyScissors(): Promise<void> {
+    if (this.safetyScissorsUsed) {
+      this.statusText.setText("SAFETY SCISSORS WERE ALREADY USED THIS HAND.");
+      return;
+    }
+    const eligible = this.visiblePlayerCardIndices().filter((index) => this.playerHand[index]?.rank !== "A");
+    const index = await this.chooseCardIndex("SAFETY SCISSORS: CUT WHICH CARD?", eligible);
+    if (index === null) return;
+    const original = this.playerHand[index];
+    if (!original) return;
+    const halves = splitArcadeCard(original, this.scoringRules());
+    let playerHalf = halves.lower;
+    let dealerHalf = halves.upper;
+    if (halves.lower.valueOverride !== halves.upper.valueOverride) {
+      const recipient = await this.askOptions("WHO GETS THE LARGER HALF?", [
+        { value: "player", label: "YOU" },
+        { value: "dealer", label: "DUNCAN" }
+      ]);
+      if (recipient === "player") [playerHalf, dealerHalf] = [halves.upper, halves.lower];
+    }
+    this.playerHand[index] = playerHalf;
+    this.dealerHand.push(dealerHalf);
+    this.safetyScissorsUsed = true;
+    this.statusText.setText(`SAFETY SCISSORS: YOU KEPT ${playerHalf.valueOverride}; DUNCAN GOT ${dealerHalf.valueOverride}.`);
+    this.refreshHandCards(false);
+    if (!this.handlePlayerTerminal()) this.restorePlayingControls();
+  }
+
+  private async useUniversalRemote(): Promise<void> {
+    if (this.universalRemoteUsed) {
+      this.statusText.setText("UNIVERSAL REMOTE WAS ALREADY USED THIS HAND.");
+      return;
+    }
+    this.universalRemoteUsed = true;
+    const previousId = this.houseRule.id;
+    const next = chooseHouseRule(previousId);
+    if (previousId === "shared-custody") this.sharedCard = null;
+    this.fiveFingerUsed = false;
+    this.charityCaseUsed = false;
+    this.cowardTaxApplied = false;
+    this.hideAllActionControls();
+    await this.replaceHouseRule({ id: next.id, handsRemaining: this.houseRule.handsRemaining });
+    if (!this.scene.isActive()) return;
+    if (next.id === "shared-custody" && !this.sharedCard && this.deck.length > 0) {
+      if (this.playerHand.length > 1) this.playerHand.splice(1, 1);
+      if (this.dealerHand.length > 1) this.dealerHand.splice(1, 1);
+      this.sharedCard = this.takeCard();
+    }
+    if (next.id === "two-card-monte") {
+      while (this.playerHand.length > 2) this.playerHand.shift();
+      while (this.dealerHand.length > 2) this.dealerHand.shift();
+    }
+    if (next.id === "all-bets-are-off" && this.activeStake > 0) {
+      this.chips += this.activeStake;
+      this.activeStake = 0;
+      this.activeWager = 10;
+      this.refreshBalances();
+      this.updateRegisteredUser();
+    }
+    this.refreshHandCards(false);
+    this.restorePlayingControls();
+  }
+
+  private useSwapMeetTicket(): void {
+    if (this.swapMeetUsed) {
+      this.statusText.setText("SWAP MEET TICKET WAS ALREADY USED THIS HAND.");
+      return;
+    }
+    [this.playerHand, this.dealerHand] = [this.dealerHand, this.playerHand];
+    this.hiddenPlayerCardIndex = null;
+    this.syncTrinketState();
+    this.swapMeetUsed = true;
+    this.statusText.setText("SWAP MEET TICKET: YOU AND DUNCAN SWAPPED HANDS.");
+    this.refreshHandCards(false);
+    if (!this.handlePlayerTerminal()) this.restorePlayingControls();
+  }
+
+  private async useDryCleaningTicket(): Promise<void> {
+    if (this.dryCleaningTicketUsed) {
+      this.statusText.setText("DRY-CLEANING TICKET WAS ALREADY USED THIS HAND.");
+      return;
+    }
+    const suit = await this.chooseSuit("DRY-CLEANING TICKET: REMOVE WHICH SUIT?");
+    if (!suit) return;
+    this.playerHand = this.playerHand.filter((card) => card.suit !== suit);
+    this.dealerHand = this.dealerHand.filter((card) => card.suit !== suit);
+    this.hiddenPlayerCardIndex = null;
+    this.syncTrinketState();
+    this.dryCleaningTicketUsed = true;
+    this.statusText.setText(`DRY-CLEANING TICKET REMOVED ALL ${suit.toUpperCase()}.`);
+    this.refreshHandCards(false);
+    if (!this.handlePlayerTerminal()) this.restorePlayingControls();
+  }
+
+  private async useReturnReceipt(): Promise<void> {
+    if (this.returnReceiptUsed) {
+      this.statusText.setText("RETURN RECEIPT WAS ALREADY USED THIS HAND.");
+      return;
+    }
+    if (this.deck.length === 0) return;
+    const index = await this.chooseCardIndex("RETURN RECEIPT: EXCHANGE WHICH CARD?", this.visiblePlayerCardIndices());
+    if (index === null) return;
+    const original = this.playerHand[index];
+    const replacement = this.deck[0];
+    if (!original || !replacement) return;
+    this.playerHand[index] = replacement;
+    this.deck[0] = original;
+    this.returnReceiptUsed = true;
+    this.statusText.setText(`RETURN RECEIPT: ${this.cardLabel(original)} BECAME ${this.cardLabel(replacement)}.`);
+    this.refreshHandCards(false);
+    if (!this.handlePlayerTerminal()) this.restorePlayingControls();
+  }
+
+  private async useHalfOffCoupon(): Promise<void> {
+    if (this.halfOffUsed) {
+      this.statusText.setText("HALF-OFF COUPON WAS ALREADY USED THIS HAND.");
+      return;
+    }
+    const eligible = this.visiblePlayerCardIndices().filter((index) => this.playerHand[index]?.rank !== "A");
+    const index = await this.chooseCardIndex("HALF-OFF COUPON: SPLIT WHICH CARD?", eligible);
+    if (index === null) return;
+    const original = this.playerHand[index];
+    if (!original) return;
+    const halves = splitArcadeCard(original, this.scoringRules());
+    this.playerHand.splice(index, 1, halves.lower, halves.upper);
+    this.halfOffUsed = true;
+    this.statusText.setText(`HALF-OFF COUPON SPLIT ${this.cardLabel(original)} INTO ${halves.lower.valueOverride} + ${halves.upper.valueOverride}.`);
+    this.refreshHandCards(false);
+    if (!this.handlePlayerTerminal()) this.restorePlayingControls();
+  }
+
+  private useBookmark(): void {
+    if (this.bookmarkUsed) {
+      this.statusText.setText("BOOKMARK WAS ALREADY USED THIS HAND.");
+      return;
+    }
+    if (this.hasHouseRule("no-peeking") || this.dealerHand.length === 0) {
+      this.statusText.setText("BOOKMARK NEEDS A VISIBLE DUNCAN CARD.");
+      return;
+    }
+    const [bookmarked] = this.dealerHand.splice(0, 1);
+    if (!bookmarked) return;
+    this.deck.unshift(bookmarked);
+    this.bookmarkUsed = true;
+    this.statusText.setText(`BOOKMARK PUT ${this.cardLabel(bookmarked)} ON TOP OF THE DECK.`);
+    this.refreshHandCards(false);
+    this.restorePlayingControls();
+  }
+
+  private useDoOverToken(): void {
+    if (this.doOverUsed) {
+      this.statusText.setText("DO-OVER TOKEN WAS ALREADY USED THIS HAND.");
+      return;
+    }
+    if (this.deck.length < 2) return;
+    this.playerHand = [this.takeCard(), this.takeCard()];
+    this.hiddenPlayerCardIndex = null;
+    this.syncTrinketState();
+    this.doOverUsed = true;
+    this.statusText.setText("DO-OVER TOKEN DEALT YOU TWO REPLACEMENT CARDS.");
+    this.refreshHandCards(false);
+    if (!this.handlePlayerTerminal()) this.restorePlayingControls();
+  }
+
+  private chooseSuit(prompt: string): Promise<Suit | null> {
+    return this.askOptions(prompt, [
+      { value: "clubs", label: "CLUBS" },
+      { value: "diamonds", label: "DIAMONDS" },
+      { value: "hearts", label: "HEARTS" },
+      { value: "spades", label: "SPADES" }
+    ]).then((value) => value === "clubs" || value === "diamonds" || value === "hearts" || value === "spades" ? value : null);
   }
 
   private async choosePiggyMode(): Promise<void> {
@@ -853,7 +1273,7 @@ export class TableScene extends Phaser.Scene {
     this.hideAllActionControls();
     this.statusText.setText("CHICKEN GAME: YOU HIT FIRST.");
     while (this.phase === "playing") {
-      if (this.performPlayerHit()) break;
+      if (await this.performPlayerHit()) break;
       await this.delay(450);
       if (this.phase !== "playing") break;
       if (!this.shouldDealerHit(true)) {
@@ -1157,7 +1577,7 @@ export class TableScene extends Phaser.Scene {
       hearts: "H",
       spades: "S"
     };
-    return `${card.rank}${suits[card.suit]}`;
+    return `${card.valueOverride ?? card.rank}${suits[card.suit]}`;
   }
 
   private async playDialogueScript(script: DuncanDialogueScript): Promise<void> {
@@ -1231,6 +1651,10 @@ export class TableScene extends Phaser.Scene {
 
     if (this.hasTrinket("piggy-bank") && !this.piggyChoice && !this.hasHouseRule("all-bets-are-off")) {
       this.statusText.setText("PIGGY BANK: CLICK IT OR PRESS BET TO CHOOSE SAVE OR SMASH.");
+    } else if (this.hasTrinket("deck-of-many-bs-things") && !this.deckOfManyEffect) {
+      this.statusText.setText("DECK OF MANY BS THINGS: PRESS BET TO DRAW AN EFFECT.");
+    } else if (this.hasTrinket("dry-cleaning-tag") && !this.dryCleaningTagSuit) {
+      this.statusText.setText("DRY CLEANING TAG: CLICK IT OR PRESS BET TO DECLARE A SUIT.");
     }
   }
 
@@ -1278,13 +1702,28 @@ export class TableScene extends Phaser.Scene {
   private refreshHandCards(showDealerHoleCard: boolean, revealPlayer = false): void {
     for (const card of this.renderedCards) card.destroy();
     this.renderedCards = [];
+    this.sharedCardLabel?.destroy();
+    this.sharedCardLabel = null;
     this.renderHand(this.dealerHand, 337, (index) => {
-      if (showDealerHoleCard) return false;
+      if (showDealerHoleCard || this.hasHouseRule("open-hand-night")) return false;
       return this.hasHouseRule("no-peeking") ? index < 2 : index === 1;
     });
     this.renderHand(this.playerHand, 426, (index) => !revealPlayer && index === this.hiddenPlayerCardIndex);
 
-    this.dealerTotalText.setText(showDealerHoleCard ? String(this.dealerValue().total) : "?");
+    if (this.sharedCard) {
+      this.renderedCards.push(this.add.image(480, 381, CARD_ASSETS.faces.key, cardFaceFrame(this.sharedCard)).setScale(0.82));
+      this.sharedCardLabel = this.add
+        .text(480, 381, "SHARED", {
+          fontFamily: GAME_FONT_FAMILY,
+          fontSize: "8px",
+          color: "#f7d56b",
+          backgroundColor: "#241b14",
+          padding: { x: 3, y: 2 }
+        })
+        .setOrigin(0.5);
+    }
+
+    this.dealerTotalText.setText(showDealerHoleCard || this.hasHouseRule("open-hand-night") ? String(this.dealerValue().total) : "?");
     this.playerTotalText.setText(!revealPlayer && this.hiddenPlayerCardIndex !== null ? "?" : String(this.playerValue().total));
   }
 

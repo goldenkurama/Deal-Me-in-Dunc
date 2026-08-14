@@ -21,6 +21,8 @@ export type Rank = (typeof RANKS)[number];
 export interface Card {
   readonly suit: Suit;
   readonly rank: Rank;
+  /** Used by arcade effects that split or otherwise alter a card's value. */
+  readonly valueOverride?: number;
 }
 
 export interface HandValue {

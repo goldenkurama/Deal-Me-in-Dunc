@@ -86,6 +86,20 @@ describe("database game settlement", () => {
     })).resolves.toEqual({ balances: { chips: 110, dunkaroos: 15 } });
   });
 
+  it("supports a Cash-Only Coupon win with no dunkaroos", async () => {
+    database.execute
+      .mockResolvedValueOnce([[{ chips: 100, dunkaroos: 5 }]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValue([{}]);
+
+    await expect(databaseGameService.settleHand("7", {
+      ...settlement,
+      outcome: "player-win",
+      chipsAwarded: 40,
+      dunkaroosAwarded: 0
+    })).resolves.toEqual({ balances: { chips: 130, dunkaroos: 5 } });
+  });
+
   it("rejects rewards that do not match positive chip profit", async () => {
     await expect(databaseGameService.settleHand("7", {
       ...settlement,

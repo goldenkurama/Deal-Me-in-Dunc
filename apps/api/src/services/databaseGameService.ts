@@ -29,9 +29,9 @@ async function settleHand(
   }
 
   const chipProfit = settlement.chipsAwarded - settlement.chipsStaked;
-  const expectedDunkaroos = Math.max(0, chipProfit);
-  if (settlement.dunkaroosAwarded !== expectedDunkaroos) {
-    throw new GameError(400, "invalid_rewards", "Dunkaroos must equal positive chip profit");
+  const maximumDunkaroos = Math.max(0, chipProfit);
+  if (settlement.dunkaroosAwarded > maximumDunkaroos) {
+    throw new GameError(400, "invalid_rewards", "Dunkaroos cannot exceed positive chip profit");
   }
   if (
     (settlement.outcome === "push" &&

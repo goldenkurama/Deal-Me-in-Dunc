@@ -24,7 +24,25 @@ export const TRINKET_ART: Readonly<Record<TrinketId, TrinketArtAsset>> = Object.
   "issue-17": { key: "trinket-issue-17", url: "/assets/trinkets/issue-17.png", ready: true },
   "hall-pass": { key: "trinket-hall-pass", url: "/assets/trinkets/hall-pass.png", ready: true },
   "booster-pack": { key: "trinket-booster-pack", url: "/assets/trinkets/booster-pack.png", ready: true },
-  "broken-calculator": { key: "trinket-broken-calculator", url: "/assets/trinkets/broken-calculator.png", ready: true }
+  "broken-calculator": { key: "trinket-broken-calculator", url: "/assets/trinkets/broken-calculator.png", ready: true },
+  "safety-scissors": { key: "trinket-safety-scissors", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "three-ring-binder": { key: "trinket-three-ring-binder", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "participation-trophy": { key: "trinket-participation-trophy", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "deck-of-many-bs-things": { key: "trinket-deck-of-many-bs-things", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "junk-drawer": { key: "trinket-junk-drawer", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "universal-remote": { key: "trinket-universal-remote", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "swap-meet-ticket": { key: "trinket-swap-meet-ticket", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "loaded-shoe": { key: "trinket-loaded-shoe", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "dry-cleaning-ticket": { key: "trinket-dry-cleaning-ticket", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "maxxed-out-credit-card": { key: "trinket-maxxed-out-credit-card", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "cash-only-coupon": { key: "trinket-cash-only-coupon", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "return-receipt": { key: "trinket-return-receipt", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "half-off-coupon": { key: "trinket-half-off-coupon", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "dry-cleaning-tag": { key: "trinket-dry-cleaning-tag", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  bookmark: { key: "trinket-bookmark", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "express-lane-sign": { key: "trinket-express-lane-sign", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "two-for-one-coupon": { key: "trinket-two-for-one-coupon", url: "/assets/trinkets/trinket-placeholder.png", ready: false },
+  "do-over-token": { key: "trinket-do-over-token", url: "/assets/trinkets/trinket-placeholder.png", ready: false }
 });
 
 export const TRINKET_ASSETS = Object.freeze({
