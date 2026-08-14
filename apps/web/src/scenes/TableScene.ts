@@ -546,7 +546,7 @@ export class TableScene extends Phaser.Scene {
 
     this.resolveTradingPrediction(drawn);
     if (fiveFingerStolenCard) {
-      this.statusText.setText("FIVE FINGER DISCOUNT: DUNCAN STOLE YOUR LOWEST CARD BEFORE THE HIT.");
+      this.statusText.setText("FIVE FINGER DISCOUNT: DUNCAN STOLE YOUR LOWEST CARD.");
     }
     this.refreshHandCards(false);
     return this.handlePlayerTerminal();
