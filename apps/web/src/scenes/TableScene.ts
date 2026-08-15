@@ -79,6 +79,12 @@ type RecordMode = "face" | "no-face";
 type Advice = "hit" | "stand";
 type Prediction = "higher" | "lower";
 
+const DECK_OF_MANY_EFFECT_MESSAGES: Readonly<Record<DeckOfManyEffect, string>> = Object.freeze({
+  fool: "THE FOOL: ONE OF YOUR CARDS IS OBSCURED.",
+  tower: "THE TOWER: BLACK CARDS ARE +1; RED CARDS ARE -1.",
+  world: "THE WORLD: WINNING PROFIT IS TRIPLED."
+});
+
 export class TableScene extends Phaser.Scene {
   private dealer!: Dealer;
   private audio!: AudioManager;
@@ -468,13 +474,7 @@ export class TableScene extends Phaser.Scene {
     const freeHand = this.hasHouseRule("all-bets-are-off");
     if (this.hasTrinket("deck-of-many-bs-things") && !this.deckOfManyEffect) {
       this.deckOfManyEffect = chooseDeckOfManyEffect();
-      const labels: Record<DeckOfManyEffect, string> = {
-        fool: "THE FOOL: ONE OF YOUR CARDS WILL BE OBSCURED.",
-        tower: "THE TOWER: BLACK +1, RED -1.",
-        world: "THE WORLD: WINNING PROFIT IS TRIPLED."
-      };
-      this.statusText.setText(`DECK OF MANY BS THINGS - ${labels[this.deckOfManyEffect]}`);
-      return;
+      this.statusText.setText(`DECK OF MANY BS THINGS - ${DECK_OF_MANY_EFFECT_MESSAGES[this.deckOfManyEffect]}`);
     }
     if (this.hasTrinket("piggy-bank") && !this.piggyChoice && !freeHand) {
       await this.choosePiggyMode();
@@ -546,7 +546,9 @@ export class TableScene extends Phaser.Scene {
     }
 
     this.phase = "playing";
-    this.statusText.setText("");
+    this.statusText.setText(this.deckOfManyEffect
+      ? `DECK OF MANY BS THINGS - ${DECK_OF_MANY_EFFECT_MESSAGES[this.deckOfManyEffect]}`
+      : "");
     this.showPlayingControls();
     this.refreshHandCards(false);
 
