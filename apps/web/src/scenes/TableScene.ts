@@ -66,6 +66,7 @@ const BET_INCREMENT = 10;
 const HOUSE_RULE_CHANGE_DELAY_MS = 2_000;
 const CARD_REVEAL_DELAY_MS = 350;
 const DEALER_ACTION_DELAY_MS = 550;
+const MUSICAL_CHAIRS_SWAP_DURATION_MS = 600;
 
 type TablePhase =
   | "betting"
@@ -111,6 +112,8 @@ export class TableScene extends Phaser.Scene {
   private betButton!: Phaser.GameObjects.Text;
   private increaseBetButton!: Phaser.GameObjects.Text;
   private renderedCards: Phaser.GameObjects.Image[] = [];
+  private renderedDealerCards: Phaser.GameObjects.Image[] = [];
+  private renderedPlayerCards: Phaser.GameObjects.Image[] = [];
   private sharedCardLabel: Phaser.GameObjects.Text | null = null;
   private modalObjects: Phaser.GameObjects.GameObject[] = [];
 
@@ -292,6 +295,8 @@ export class TableScene extends Phaser.Scene {
     this.deckOfManyEffect = null;
     this.dryCleaningTagSuit = null;
     this.renderedCards = [];
+    this.renderedDealerCards = [];
+    this.renderedPlayerCards = [];
     this.sharedCardLabel = null;
     this.modalObjects = [];
     this.resetHandEffects();
@@ -654,6 +659,10 @@ export class TableScene extends Phaser.Scene {
       const playerCard = this.playerHand[playerIndex];
       const dealerCard = this.dealerHand[dealerIndex];
       if (playerCard && dealerCard) {
+        this.refreshHandCards(false);
+        this.hideAllActionControls();
+        await this.animateMusicalChairsSwap(playerIndex, dealerIndex);
+        if (!this.scene.isActive() || this.phase !== "playing") return false;
         this.playerHand[playerIndex] = dealerCard;
         this.dealerHand[dealerIndex] = playerCard;
         actionNote = "MUSICAL CHAIRS SWAPPED ONE CARD FROM EACH HAND.";
@@ -668,7 +677,44 @@ export class TableScene extends Phaser.Scene {
       this.statusText.setText(actionNote);
     }
     this.refreshHandCards(false);
-    return this.handlePlayerTerminal();
+    const terminal = this.handlePlayerTerminal();
+    if (!terminal) this.restorePlayingControls();
+    return terminal;
+  }
+
+  private async animateMusicalChairsSwap(playerIndex: number, dealerIndex: number): Promise<void> {
+    const playerImage = this.renderedPlayerCards[playerIndex];
+    const dealerImage = this.renderedDealerCards[dealerIndex];
+    if (!playerImage || !dealerImage) return;
+    const playerDestination = { x: dealerImage.x, y: dealerImage.y };
+    const dealerDestination = { x: playerImage.x, y: playerImage.y };
+    playerImage.setDepth(250);
+    dealerImage.setDepth(250);
+    await Promise.all([
+      this.tweenCardTo(playerImage, playerDestination.x, playerDestination.y),
+      this.tweenCardTo(dealerImage, dealerDestination.x, dealerDestination.y)
+    ]);
+  }
+
+  private tweenCardTo(image: Phaser.GameObjects.Image, x: number, y: number): Promise<void> {
+    return new Promise((resolve) => {
+      let finished = false;
+      const finish = (): void => {
+        if (finished) return;
+        finished = true;
+        this.events.off(Phaser.Scenes.Events.SHUTDOWN, finish);
+        resolve();
+      };
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, finish);
+      this.tweens.add({
+        targets: image,
+        x,
+        y,
+        duration: MUSICAL_CHAIRS_SWAP_DURATION_MS,
+        ease: "Sine.easeInOut",
+        onComplete: finish
+      });
+    });
   }
 
   private resolveTradingPrediction(drawn: Card): void {
@@ -1730,14 +1776,16 @@ export class TableScene extends Phaser.Scene {
   private refreshHandCards(showDealerHoleCard: boolean, revealPlayer = false): void {
     for (const card of this.renderedCards) card.destroy();
     this.renderedCards = [];
+    this.renderedDealerCards = [];
+    this.renderedPlayerCards = [];
     this.sharedCardLabel?.destroy();
     this.sharedCardLabel = null;
-    this.renderHand(this.dealerHand, 337, (index) => {
+    this.renderedDealerCards = this.renderHand(this.dealerHand, 337, (index) => {
       if (showDealerHoleCard || this.hasHouseRule("open-hand-night")) return false;
       if (this.hasHouseRule("shared-custody")) return index === 0;
       return this.hasHouseRule("no-peeking") ? index < 2 : index === 1;
     });
-    this.renderHand(this.playerHand, 426, (index) => !revealPlayer && index === this.hiddenPlayerCardIndex);
+    this.renderedPlayerCards = this.renderHand(this.playerHand, 426, (index) => !revealPlayer && index === this.hiddenPlayerCardIndex);
 
     if (this.sharedCard) {
       this.renderedCards.push(this.add.image(845, 382, CARD_ASSETS.faces.key, cardFaceFrame(this.sharedCard)).setScale(0.82));
@@ -1756,8 +1804,9 @@ export class TableScene extends Phaser.Scene {
     this.playerTotalText.setText(!revealPlayer && this.hiddenPlayerCardIndex !== null ? "?" : String(this.playerValue().total));
   }
 
-  private renderHand(cards: readonly Card[], y: number, hidden: (index: number) => boolean): void {
-    if (cards.length === 0) return;
+  private renderHand(cards: readonly Card[], y: number, hidden: (index: number) => boolean): Phaser.GameObjects.Image[] {
+    if (cards.length === 0) return [];
+    const images: Phaser.GameObjects.Image[] = [];
     const spacing = cards.length > 1 ? Math.min(46, (460 - CARD_WIDTH) / (cards.length - 1)) : 0;
     const handWidth = CARD_WIDTH + spacing * (cards.length - 1);
     const firstX = 480 - handWidth / 2 + CARD_WIDTH / 2;
@@ -1766,6 +1815,8 @@ export class TableScene extends Phaser.Scene {
         ? this.add.image(firstX + index * spacing, y, CARD_ASSETS.backs.key, CARD_ASSETS.backs.frames.red)
         : this.add.image(firstX + index * spacing, y, CARD_ASSETS.faces.key, cardFaceFrame(card));
       this.renderedCards.push(image);
+      images.push(image);
     });
+    return images;
   }
 }
