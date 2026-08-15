@@ -1125,10 +1125,10 @@ export class TableScene extends Phaser.Scene {
   }
 
   private async chooseDryCleaningTagSuit(): Promise<void> {
-    const suit = await this.chooseSuit("DRY CLEANING TAG: DECLARE A SUIT");
+    const suit = await this.chooseSuit("MINI VACUUM: DECLARE A SUIT");
     if (!suit) return;
     this.dryCleaningTagSuit = suit;
-    this.enterBettingState(`DRY CLEANING TAG: ${suit.toUpperCase()} DECLARED.`);
+    this.enterBettingState(`MINI VACUUM: ${suit.toUpperCase()} DECLARED.`);
   }
 
   private async useSafetyScissors(): Promise<void> {
@@ -1728,7 +1728,7 @@ export class TableScene extends Phaser.Scene {
     } else if (this.hasTrinket("deck-of-many-bs-things") && !this.deckOfManyEffect) {
       this.statusText.setText("DECK OF MANY BS THINGS: PRESS BET TO DRAW AN EFFECT.");
     } else if (this.hasTrinket("dry-cleaning-tag") && !this.dryCleaningTagSuit) {
-      this.statusText.setText("DRY CLEANING TAG: CLICK IT OR PRESS BET TO DECLARE A SUIT.");
+      this.statusText.setText("MINI VACUUM: CLICK IT OR PRESS BET TO DECLARE A SUIT.");
     }
   }
 

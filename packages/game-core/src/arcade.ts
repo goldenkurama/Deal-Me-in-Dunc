@@ -91,7 +91,7 @@ export const TRINKETS: readonly TrinketDefinition[] = Object.freeze([
   { id: "cash-only-coupon", name: "Cash-Only Coupon", description: "Winning profit is tripled, but wins award no dunkaroos.", interaction: "passive" },
   { id: "return-receipt", name: "Return Receipt", description: "Once per hand, exchange one card with the card on top of the deck.", interaction: "click" },
   { id: "half-off-coupon", name: "Half-Off Coupon", description: "Once per hand, split one non-Ace card into two cards. Face cards become number cards.", interaction: "click" },
-  { id: "dry-cleaning-tag", name: "Dry Cleaning Tag", description: "Before betting, name a suit. Win with that suit in your hand for double profit.", interaction: "pre-bet" },
+  { id: "dry-cleaning-tag", name: "Mini Vacuum", description: "Before betting, name a suit. Win with that suit in your hand for double profit.", interaction: "pre-bet" },
   { id: "bookmark", name: "Bookmark", description: "Once per hand, place Duncan's visible card on top of the deck.", interaction: "click" },
   { id: "express-lane-sign", name: "Express Lane Sign", description: "Winning with three cards or fewer grants 1.5x profit.", interaction: "passive" },
   { id: "two-for-one-coupon", name: "Two-for-One Coupon", description: "On your first Hit, draw two cards, keep one, and discard the other.", interaction: "passive" },
