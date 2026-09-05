@@ -487,7 +487,7 @@ export class TableScene extends Phaser.Scene {
     }
     if (this.hasTrinket("dry-cleaning-tag") && !this.dryCleaningTagSuit) {
       await this.chooseDryCleaningTagSuit();
-      return;
+      if (!this.dryCleaningTagSuit || !this.scene.isActive()) return;
     }
 
     const minimum = this.minimumAvailableBet();
@@ -1125,10 +1125,10 @@ export class TableScene extends Phaser.Scene {
   }
 
   private async chooseDryCleaningTagSuit(): Promise<void> {
-    const suit = await this.chooseSuit("MINI VACUUM: DECLARE A SUIT");
+    const suit = await this.chooseSuit("DRY CLEANING TICKET: DECLARE A SUIT");
     if (!suit) return;
     this.dryCleaningTagSuit = suit;
-    this.enterBettingState(`MINI VACUUM: ${suit.toUpperCase()} DECLARED.`);
+    this.enterBettingState(`DRY CLEANING TICKET: ${suit.toUpperCase()} DECLARED.`);
   }
 
   private async useSafetyScissors(): Promise<void> {
@@ -1210,17 +1210,17 @@ export class TableScene extends Phaser.Scene {
 
   private async useDryCleaningTicket(): Promise<void> {
     if (this.dryCleaningTicketUsed) {
-      this.statusText.setText("DRY-CLEANING TICKET WAS ALREADY USED THIS HAND.");
+      this.statusText.setText("MINI VACUUM WAS ALREADY USED THIS HAND.");
       return;
     }
-    const suit = await this.chooseSuit("DRY-CLEANING TICKET: REMOVE WHICH SUIT?");
+    const suit = await this.chooseSuit("MINI VACUUM: REMOVE WHICH SUIT?");
     if (!suit) return;
     this.playerHand = this.playerHand.filter((card) => card.suit !== suit);
     this.dealerHand = this.dealerHand.filter((card) => card.suit !== suit);
     this.hiddenPlayerCardIndex = null;
     this.syncTrinketState();
     this.dryCleaningTicketUsed = true;
-    this.statusText.setText(`DRY-CLEANING TICKET REMOVED ALL ${suit.toUpperCase()}.`);
+    this.statusText.setText(`MINI VACUUM REMOVED ALL ${suit.toUpperCase()}.`);
     this.refreshHandCards(false);
     if (!this.handlePlayerTerminal()) this.restorePlayingControls();
   }
@@ -1728,7 +1728,7 @@ export class TableScene extends Phaser.Scene {
     } else if (this.hasTrinket("deck-of-many-bs-things") && !this.deckOfManyEffect) {
       this.statusText.setText("DECK OF MANY BS THINGS: PRESS BET TO DRAW AN EFFECT.");
     } else if (this.hasTrinket("dry-cleaning-tag") && !this.dryCleaningTagSuit) {
-      this.statusText.setText("MINI VACUUM: CLICK IT OR PRESS BET TO DECLARE A SUIT.");
+      this.statusText.setText("DRY CLEANING TICKET: CLICK IT OR PRESS BET TO DECLARE A SUIT.");
     }
   }
 
